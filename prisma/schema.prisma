@@ -1,0 +1,83 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model GameBusiness {
+  id                          Int     @id @default(autoincrement())
+  번호                      Int?
+  개방서비스명          String?
+  개방서비스아이디    String?
+  개방자치단체코드    String?
+  관리번호                String?
+  인허가일자             String?
+  인허가취소일자       String?
+  영업상태구분코드    String?
+  영업상태명             String?
+  상세영업상태코드    String?
+  상세영업상태명       String?
+  폐업일자                String?
+  휴업시작일자          String?
+  휴업종료일자          String?
+  재개업일자             String?
+  소재지전화             String?
+  소재지면적             String?
+  소재지우편번호       String?
+  소재지전체주소       String?
+  도로명전체주소       String?
+  도로명우편번호       String?
+  사업장명                String?
+  최종수정시점          String?
+  데이터갱신구분       String?
+  데이터갱신일자       String?
+  업태구분명             String?
+  좌표정보x               String?
+  좌표정보y               String?
+  문화체육업종명       String?
+  문화사업자구분명    String?
+  총층수                   String?
+  주변환경명             String?
+  제작취급품목내용    String?
+  시설면적                String?
+  지상층수                String?
+  지하층수                String?
+  건물용도명             String?
+  통로너비                String?
+  조명시설조도          String?
+  노래방실수             String?
+  청소년실수             String?
+  비상계단여부          String?
+  비상구여부             String?
+  자동환기여부          String?
+  청소년실여부          String?
+  특수조명여부          String?
+  방음시설여부          String?
+  비디오재생기명       String?
+  조명시설유무          String?
+  음향시설여부          String?
+  편의시설여부          String?
+  소방시설여부          String?
+  총게임기수             String?
+  기존게임업외업종명 String?
+  제공게임물명          String?
+  공연장형태구분명    String?
+  품목명                   String?
+  최초등록시점          String?
+  지역구분명             String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("game_businesses")
+}
