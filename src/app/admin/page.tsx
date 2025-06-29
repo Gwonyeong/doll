@@ -319,7 +319,7 @@ export default function AdminPage() {
                       }))
                     }
                     placeholder="주소를 입력하세요"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-gray-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-gray-500 text-gray-900"
                   />
                 </div>
 
@@ -338,7 +338,7 @@ export default function AdminPage() {
                       }))
                     }
                     placeholder="사업장명을 입력하세요"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-gray-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-gray-500 text-gray-900"
                   />
                 </div>
 
