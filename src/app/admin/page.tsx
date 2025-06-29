@@ -275,7 +275,7 @@ export default function AdminPage() {
                         isOperating: e.target.value,
                       }))
                     }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-gray-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-gray-500 text-gray-900"
                   >
                     <option value="">전체</option>
                     <option value="true">영업/정상</option>
@@ -296,7 +296,7 @@ export default function AdminPage() {
                         hasPhone: e.target.value,
                       }))
                     }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-gray-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-gray-500 text-gray-900"
                   >
                     <option value="">전체</option>
                     <option value="true">있음</option>
