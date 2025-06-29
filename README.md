@@ -1,6 +1,4 @@
-# 🎯 DollCatcher Landing Page
-
-인형뽑기 매장 맵 서비스 DollCatcher의 랜딩페이지입니다.
+# 🎯 DollCatcher
 
 ## 📋 프로젝트 개요
 
