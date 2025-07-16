@@ -3,8 +3,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
-import { Search, MapPin, Menu, X, Home, Navigation, Star } from "lucide-react";
-import Link from "next/link";
+import { MapPin, Menu, X, Navigation, Star } from "lucide-react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 
@@ -68,7 +67,6 @@ export default function MapPage() {
   const [stores, setStores] = useState<GameStore[]>([]);
   const [selectedStore, setSelectedStore] = useState<GameStore | null>(null);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
   const [filterCategory, setFilterCategory] = useState("전체");
   const [userLocation, setUserLocation] = useState<{
     lat: number;
@@ -308,12 +306,9 @@ export default function MapPage() {
 
   // 필터링된 매장 목록
   const filteredStores = stores.filter((store) => {
-    const matchesSearch =
-      store.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      store.address.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesCategory =
       filterCategory === "전체" || store.category.includes(filterCategory);
-    return matchesSearch && matchesCategory;
+    return matchesCategory;
   });
 
   // 매장 카테고리 (실제 데이터 기반)
@@ -426,45 +421,6 @@ export default function MapPage() {
         </div>
       )}
 
-      {/* 상단 검색바 */}
-      <motion.div
-        initial={{ y: -100, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        transition={{ duration: 0.6 }}
-        className="absolute top-4 left-4 right-4 z-10"
-      >
-        <div className="bg-white rounded-2xl shadow-xl p-4 glass-effect">
-          <div className="flex items-center gap-3">
-            <Link href="/">
-              <button className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
-                <Home size={24} className="text-gray-600" />
-              </button>
-            </Link>
-            <button
-              onClick={() => setIsMenuOpen(true)}
-              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-            >
-              <Menu size={24} className="text-gray-600" />
-            </button>
-            <div className="flex-1 relative">
-              <Search
-                size={20}
-                className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
-              />
-              <input
-                type="text"
-                placeholder="매장명이나 주소를 검색해보세요"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 bg-gray-50 rounded-lg border-none outline-none focus:bg-white focus:ring-2 focus:ring-primary/20 transition-all"
-              />
-            </div>
-            <div className="text-sm text-gray-600 px-2">
-              {stores.length}개 매장
-            </div>
-          </div>
-        </div>
-      </motion.div>
 
       {/* 사이드 메뉴 */}
       <motion.div
