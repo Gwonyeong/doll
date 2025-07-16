@@ -166,6 +166,34 @@ export default function MapPage() {
       return;
     }
 
+    // 먼저 사용자 위치를 가져옴
+    const initializeWithUserLocation = () => {
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            const location = {
+              lat: position.coords.latitude,
+              lng: position.coords.longitude,
+            };
+            setUserLocation(location);
+            initializeMap(location.lat, location.lng);
+            fetchNearbyStores(location.lat, location.lng);
+          },
+          (error) => {
+            console.error("위치 정보를 가져올 수 없습니다:", error);
+            // 기본 위치 (서울 중심)로 초기화
+            initializeMap(37.5665, 126.978);
+            fetchNearbyStores(37.5665, 126.978);
+          }
+        );
+      } else {
+        console.error("Geolocation이 지원되지 않습니다.");
+        // 기본 위치로 초기화
+        initializeMap(37.5665, 126.978);
+        fetchNearbyStores(37.5665, 126.978);
+      }
+    };
+
     if (!window.naver) {
       console.error("Naver Maps API not loaded");
       // API 로딩 대기
@@ -173,7 +201,7 @@ export default function MapPage() {
         if (window.naver && window.naver.maps) {
           console.log("Naver Maps API loaded successfully");
           clearInterval(checkNaverMaps);
-          initializeMap();
+          initializeWithUserLocation();
         }
       }, 100);
 
@@ -186,15 +214,15 @@ export default function MapPage() {
       return;
     }
 
-    initializeMap();
+    initializeWithUserLocation();
 
-    function initializeMap() {
+    function initializeMap(lat: number, lng: number) {
       if (!mapRef.current || !window.naver) return;
 
-      console.log("Creating map with options");
+      console.log("Creating map with user location center");
       const mapOptions = {
-        center: new window.naver.maps.LatLng(37.5665, 126.978), // 서울 중심
-        zoom: 12,
+        center: new window.naver.maps.LatLng(lat, lng), // 사용자 위치를 중심으로
+        zoom: 15, // 더 가까운 줌 레벨
         mapTypeControl: false,
         scaleControl: false,
         logoControl: false,
@@ -204,11 +232,8 @@ export default function MapPage() {
 
       try {
         const naverMap = new window.naver.maps.Map(mapRef.current, mapOptions);
-        console.log("Map created successfully:", naverMap);
+        console.log("Map created successfully with user location:", naverMap);
         setMap(naverMap);
-
-        // 사용자 위치 가져오기 및 매장 데이터 로드
-        getUserLocation();
       } catch (error) {
         console.error("Error creating map:", error);
       }
