@@ -109,8 +109,8 @@ export default function ReviewsPage() {
 
         {/* 기기/상품 */}
         <div className="mb-6">
-          <h4 className="text-sm font-medium text-gray-700 mb-3">
-            [기기/상품]
+          <h4 className="text-sm font-semibold text-gray-700 mb-3 leading-none tracking-tight">
+            기기/상품
           </h4>
           <div className="flex flex-wrap gap-2">
             {[
@@ -137,8 +137,8 @@ export default function ReviewsPage() {
 
         {/* 가격/혜택 */}
         <div className="mb-6">
-          <h4 className="text-sm font-medium text-gray-700 mb-3">
-            [가격/혜택]
+          <h4 className="text-sm font-semibold text-gray-700 mb-3 leading-none tracking-tight">
+            가격/혜택
           </h4>
           <div className="flex flex-wrap gap-2">
             {[
@@ -163,8 +163,8 @@ export default function ReviewsPage() {
 
         {/* 분위기/환경 */}
         <div className="mb-6">
-          <h4 className="text-sm font-medium text-gray-700 mb-3">
-            [분위기/환경]
+          <h4 className="text-sm font-semibold text-gray-700 mb-3  leading-none tracking-tight">
+            분위기/환경
           </h4>
           <div className="flex flex-wrap gap-2">
             {[
@@ -190,7 +190,9 @@ export default function ReviewsPage() {
 
         {/* 접근성 */}
         <div className="mb-6">
-          <h4 className="text-sm font-medium text-gray-700 mb-3">[접근성]</h4>
+          <h4 className="text-sm font-semibold text-gray-700 mb-3 leading-none tracking-tight">
+            접근성
+          </h4>
           <div className="flex flex-wrap gap-2">
             {["위치가 좋아요", "주차하기 편해요", "찾기 쉬워요"].map((tag) => (
               <button
