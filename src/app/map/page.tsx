@@ -80,6 +80,10 @@ export default function MapPage() {
   const [showGameCountInfo, setShowGameCountInfo] = useState(false); // 게임기 수 설명 박스 표시 상태
   const [reviews, setReviews] = useState<Review[]>([]);
   const [reviewsLoading, setReviewsLoading] = useState(false);
+  const [isBottomSheetExpanded, setIsBottomSheetExpanded] = useState(false);
+  const [dragStartY, setDragStartY] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragOffset, setDragOffset] = useState(0);
 
   // 사용자 위치 가져오기
   const getUserLocation = () => {
@@ -343,6 +347,69 @@ export default function MapPage() {
     }
   };
 
+  // 드래그 이벤트 핸들러
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      if (isDragging) {
+        const deltaY = dragStartY - e.clientY;
+        setDragOffset(Math.max(0, deltaY));
+        
+        // 150px 이상 드래그하면 전체 화면으로 확장
+        if (deltaY > 150) {
+          setIsBottomSheetExpanded(true);
+          setIsDragging(false);
+          setDragOffset(0);
+        }
+      }
+    };
+
+    const handleTouchMove = (e: TouchEvent) => {
+      if (isDragging) {
+        const deltaY = dragStartY - e.touches[0].clientY;
+        setDragOffset(Math.max(0, deltaY));
+        
+        // 150px 이상 드래그하면 전체 화면으로 확장
+        if (deltaY > 150) {
+          setIsBottomSheetExpanded(true);
+          setIsDragging(false);
+          setDragOffset(0);
+        }
+      }
+    };
+
+    const handleMouseUp = () => {
+      setIsDragging(false);
+      setDragOffset(0);
+    };
+
+    const handleTouchEnd = () => {
+      setIsDragging(false);
+      setDragOffset(0);
+    };
+
+    if (isDragging) {
+      document.addEventListener('mousemove', handleMouseMove);
+      document.addEventListener('mouseup', handleMouseUp);
+      document.addEventListener('touchmove', handleTouchMove);
+      document.addEventListener('touchend', handleTouchEnd);
+    }
+
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+      document.removeEventListener('touchmove', handleTouchMove);
+      document.removeEventListener('touchend', handleTouchEnd);
+    };
+  }, [isDragging, dragStartY]);
+
+  // 바텀시트 초기화
+  useEffect(() => {
+    if (selectedStore) {
+      setIsBottomSheetExpanded(false);
+      setDragOffset(0);
+    }
+  }, [selectedStore]);
+
   console.log(selectedStore);
   return (
     <div className="relative w-full h-screen overflow-hidden">
@@ -519,16 +586,81 @@ export default function MapPage() {
       {/* 선택된 매장 정보 카드 */}
       {selectedStore && (
         <div
-          className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-lg z-50 transform transition-transform duration-300 ease-in-out"
+          className={`fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-lg z-50 transform transition-transform duration-300 ease-in-out ${
+            isBottomSheetExpanded ? 'top-0' : ''
+          }`}
           style={{
-            height: "450px",
-            borderTopLeftRadius: "20px",
-            borderTopRightRadius: "20px",
+            height: isBottomSheetExpanded ? '100vh' : `${450 + dragOffset}px`,
+            borderTopLeftRadius: isBottomSheetExpanded ? '0px' : '20px',
+            borderTopRightRadius: isBottomSheetExpanded ? '0px' : '20px',
             boxShadow: "0px -4px 9px 0px #0000001A",
+            transform: isDragging ? 'none' : undefined,
           }}
         >
+          {/* 드래그 핸들 */}
+          <div
+            className="w-full py-3 cursor-pointer flex justify-center hover:bg-gray-50 transition-colors"
+            onMouseDown={(e) => {
+              setIsDragging(true);
+              setDragStartY(e.clientY);
+            }}
+            onTouchStart={(e) => {
+              setIsDragging(true);
+              setDragStartY(e.touches[0].clientY);
+            }}
+          >
+            <div className={`w-12 h-1 rounded-full transition-colors ${
+              isDragging ? 'bg-blue-400' : 'bg-gray-300'
+            }`}></div>
+          </div>
+
+          {/* 전체 화면일 때 헤더 */}
+          {isBottomSheetExpanded && (
+            <div className="px-6 pb-4 border-b border-gray-200 flex items-center justify-between">
+              <button
+                onClick={() => setIsBottomSheetExpanded(false)}
+                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                <svg
+                  width="24"
+                  height="24"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    d="M15 18L9 12L15 6"
+                    stroke="#374151"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              </button>
+              <h2 className="text-lg font-semibold text-gray-900">
+                {selectedStore.name}
+              </h2>
+              <div className="w-10"></div>
+            </div>
+          )}
+
+          {/* 전체 화면일 때 매장 이미지 */}
+          {isBottomSheetExpanded && (
+            <div className="px-6 mb-4">
+              <div className="w-full h-48 bg-gray-100 rounded-lg overflow-hidden">
+                <img
+                  src="/icon/defaultShop.svg"
+                  alt="매장 기본 이미지"
+                  className="w-full h-full object-cover"
+                />
+              </div>
+            </div>
+          )}
+
           <div className="p-6 h-full flex flex-col">
-            <div className="flex justify-between items-start mb-4">
+            <div className={`flex justify-between items-start mb-4 ${
+              isBottomSheetExpanded ? 'hidden' : ''
+            }`}>
               <div className="flex-1">
                 <h3 className="text-lg font-bold text-gray-900 mb-2">
                   {selectedStore.name}
@@ -664,7 +796,9 @@ export default function MapPage() {
             </div>
 
             {/* 리뷰 섹션 */}
-            <div className="border-t border-gray-200 pt-4 mt-4">
+            <div className={`border-t border-gray-200 pt-4 mt-4 ${
+              isBottomSheetExpanded ? 'flex-1 overflow-y-auto' : ''
+            }`}>
               {reviewsLoading ? (
                 <div className="text-center py-4">
                   <p className="text-sm text-gray-500">후기를 불러오는 중...</p>
@@ -673,7 +807,60 @@ export default function MapPage() {
                 <div className="text-center py-4">
                   <p className="text-sm text-gray-500">아직 후기가 없습니다.</p>
                 </div>
+              ) : isBottomSheetExpanded ? (
+                // 전체 화면일 때 리뷰 레이아웃
+                <div className="space-y-4">
+                  {reviews.map((review) => (
+                    <div key={review.id} className="bg-white border border-gray-200 rounded-lg p-4">
+                      <div className="flex items-start gap-3">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-2">
+                            <div className="flex gap-1">
+                              {[1, 2, 3, 4, 5].map((star) => (
+                                <Star
+                                  key={star}
+                                  size={16}
+                                  className={
+                                    star <= review.rating
+                                      ? "fill-yellow-400 text-yellow-400"
+                                      : "fill-gray-200 text-gray-200"
+                                  }
+                                />
+                              ))}
+                            </div>
+                            <span className="text-sm text-gray-500">
+                              {new Date(review.createdAt).toLocaleDateString('ko-KR', {
+                                year: '2-digit',
+                                month: '2-digit',
+                                day: '2-digit'
+                              }).replace(/\./g, '.').slice(0, -1)}
+                            </span>
+                          </div>
+                          <p className="text-sm text-gray-700 leading-relaxed mb-3">
+                            {review.content}
+                          </p>
+                          {review.images.length > 0 && (
+                            <div className="flex gap-2 flex-wrap">
+                              {review.images.map((image, index) => (
+                                <div key={index} className="w-16 h-16 bg-gray-100 rounded-lg overflow-hidden">
+                                  <Image
+                                    src={image}
+                                    alt={`리뷰 이미지 ${index + 1}`}
+                                    width={64}
+                                    height={64}
+                                    className="w-full h-full object-cover"
+                                  />
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               ) : (
+                // 기본 바텀시트일 때 리뷰 레이아웃
                 <div 
                   className="flex gap-4 overflow-x-auto pb-2 -mx-2 px-2 scrollbar-hide" 
                   style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
