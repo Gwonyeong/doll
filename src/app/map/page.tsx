@@ -3,8 +3,10 @@
 
 import { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
-import { Search, MapPin, Menu, X, Home, Navigation } from "lucide-react";
+import { Search, MapPin, Menu, X, Home, Navigation, Star } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import Image from "next/image";
 
 // 네이버 지도 타입 정의
 declare global {
@@ -49,8 +51,19 @@ interface GameStore {
   area?: string;
 }
 
+// 리뷰 타입
+interface Review {
+  id: string;
+  rating: number;
+  content: string;
+  tags: string[];
+  images: string[];
+  createdAt: string;
+}
+
 export default function MapPage() {
   const mapRef = useRef<HTMLDivElement>(null);
+  const router = useRouter();
   const [map, setMap] = useState<any>(null);
   const [stores, setStores] = useState<GameStore[]>([]);
   const [selectedStore, setSelectedStore] = useState<GameStore | null>(null);
@@ -65,6 +78,8 @@ export default function MapPage() {
   const [radius, setRadius] = useState(5); // 검색 반경 (km)
   const [markers, setMarkers] = useState<any[]>([]); // 마커 관리를 위한 상태 추가
   const [showGameCountInfo, setShowGameCountInfo] = useState(false); // 게임기 수 설명 박스 표시 상태
+  const [reviews, setReviews] = useState<Review[]>([]);
+  const [reviewsLoading, setReviewsLoading] = useState(false);
 
   // 사용자 위치 가져오기
   const getUserLocation = () => {
@@ -246,6 +261,7 @@ export default function MapPage() {
       // 마커 클릭 이벤트
       window.naver.maps.Event.addListener(marker, "click", () => {
         setSelectedStore(store);
+        fetchReviews(store.id); // 리뷰 데이터 로드
         // 클릭한 마커 위치를 지도 중앙으로 이동
         if (map) {
           map.setCenter(
@@ -304,6 +320,26 @@ export default function MapPage() {
     setRadius(newRadius);
     if (userLocation) {
       fetchNearbyStores(userLocation.lat, userLocation.lng);
+    }
+  };
+
+  // 리뷰 데이터 가져오기
+  const fetchReviews = async (storeId: number) => {
+    setReviewsLoading(true);
+    try {
+      const response = await fetch(`/api/reviews?storeId=${storeId}`);
+      const result = await response.json();
+      
+      if (result.success) {
+        setReviews(result.data.reviews);
+      } else {
+        setReviews([]);
+      }
+    } catch (error) {
+      console.error('리뷰 로드 에러:', error);
+      setReviews([]);
+    } finally {
+      setReviewsLoading(false);
     }
   };
 
@@ -439,6 +475,7 @@ export default function MapPage() {
                   whileTap={{ scale: 0.98 }}
                   onClick={() => {
                     setSelectedStore(store);
+                    fetchReviews(store.id); // 리뷰 데이터 로드
                     if (map) {
                       map.setCenter(
                         new window.naver.maps.LatLng(store.lat, store.lng)
@@ -484,7 +521,7 @@ export default function MapPage() {
         <div
           className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-lg z-50 transform transition-transform duration-300 ease-in-out"
           style={{
-            height: "333px",
+            height: "450px",
             borderTopLeftRadius: "20px",
             borderTopRightRadius: "20px",
             boxShadow: "0px -4px 9px 0px #0000001A",
@@ -626,11 +663,92 @@ export default function MapPage() {
               </button>
             </div>
 
-            <div className="mt-auto">
+            {/* 리뷰 섹션 */}
+            <div className="border-t border-gray-200 pt-4 mt-4">
+              {reviewsLoading ? (
+                <div className="text-center py-4">
+                  <p className="text-sm text-gray-500">후기를 불러오는 중...</p>
+                </div>
+              ) : reviews.length === 0 ? (
+                <div className="text-center py-4">
+                  <p className="text-sm text-gray-500">아직 후기가 없습니다.</p>
+                </div>
+              ) : (
+                <div 
+                  className="flex gap-4 overflow-x-auto pb-2 -mx-2 px-2 scrollbar-hide" 
+                  style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+                >
+                  {reviews.map((review) => (
+                    <div key={review.id} className="flex-shrink-0 w-72 bg-gray-50 rounded-lg p-3 relative">
+                      {/* 상단 영역: 별점(좌측) + 날짜(우측) */}
+                      <div className="flex items-center justify-between mb-3">
+                        {/* 별점 - 왼쪽 상단 */}
+                        <div className="flex gap-1">
+                          {[1, 2, 3, 4, 5].map((star) => (
+                            <Star
+                              key={star}
+                              size={16}
+                              className={
+                                star <= review.rating
+                                  ? "fill-yellow-400 text-yellow-400"
+                                  : "fill-gray-200 text-gray-200"
+                              }
+                            />
+                          ))}
+                        </div>
+                        
+                        {/* 날짜 - 우측 상단 */}
+                        <span className="text-xs text-gray-500">
+                          {new Date(review.createdAt).toLocaleDateString('ko-KR', {
+                            year: '2-digit',
+                            month: '2-digit',
+                            day: '2-digit'
+                          }).replace(/\./g, '.').slice(0, -1)}
+                        </span>
+                      </div>
+                      
+                      {/* 하단 영역 */}
+                      <div className="flex justify-between items-end">
+                        {/* 왼쪽: 리뷰 내용 */}
+                        <div className="flex-1 pr-3">
+                          <p className="text-sm text-gray-700 leading-relaxed">
+                            {review.content.length > 60 
+                              ? `${review.content.substring(0, 60)}...더보기`
+                              : review.content
+                            }
+                          </p>
+                        </div>
+                        
+                        {/* 오른쪽: 이미지 */}
+                        {review.images.length > 0 && (
+                          <div className="flex-shrink-0">
+                            <div className="relative w-12 h-12">
+                              <Image
+                                src={review.images[0]}
+                                alt="리뷰 이미지"
+                                fill
+                                className="object-cover rounded"
+                              />
+                              {/* 이미지 개수 표시 */}
+                              {review.images.length > 1 && (
+                                <div className="absolute bottom-1 left-1 bg-black bg-opacity-70 text-white text-xs px-1 py-0.5 rounded">
+                                  +{review.images.length - 1}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="mt-4">
               <button
                 onClick={() => {
-                  // 후기 작성 로직 추가 예정
-                  console.log("후기 작성하기 클릭:", selectedStore.name);
+                  router.push(`/reviews/${selectedStore.id}`);
                 }}
                 className="w-full py-3 px-4 rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
                 style={{ backgroundColor: "#3182F8", color: "white" }}

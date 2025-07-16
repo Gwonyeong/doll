@@ -79,5 +79,26 @@ model GameBusiness {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  reviews Review[]
+
   @@map("game_businesses")
+}
+
+model Review {
+  id            String   @id @default(cuid())
+  storeId       Int      
+  store         GameBusiness @relation(fields: [storeId], references: [id])
+  
+  rating        Int      // 1-5 별점
+  content       String   // 리뷰 내용
+  images        String[] // 이미지 URL들
+  tags          String[] // 선택한 태그들
+  
+  // 작성자 정보 (임시로 익명 처리)
+  userName      String   @default("익명")
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  @@map("reviews")
 }
