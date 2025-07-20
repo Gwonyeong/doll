@@ -125,8 +125,8 @@ export default function ReviewsPage() {
                 onClick={() => handleTagClick(tag)}
                 className={`px-4 py-2 text-sm rounded-full transition-all ${
                   selectedTags.includes(tag)
-                    ? "bg-blue-500 text-white"
-                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                    ? "bg-blue-500 text-white border border-blue-500"
+                    : "bg-white text-gray-700 border border-gray-300 hover:border-gray-400"
                 }`}
               >
                 {tag}
@@ -151,8 +151,8 @@ export default function ReviewsPage() {
                 onClick={() => handleTagClick(tag)}
                 className={`px-4 py-2 text-sm rounded-full transition-all ${
                   selectedTags.includes(tag)
-                    ? "bg-blue-500 text-white"
-                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                    ? "bg-blue-500 text-white border border-blue-500"
+                    : "bg-white text-gray-700 border border-gray-300 hover:border-gray-400"
                 }`}
               >
                 {tag}
@@ -178,8 +178,8 @@ export default function ReviewsPage() {
                 onClick={() => handleTagClick(tag)}
                 className={`px-4 py-2 text-sm rounded-full transition-all ${
                   selectedTags.includes(tag)
-                    ? "bg-blue-500 text-white"
-                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                    ? "bg-blue-500 text-white border border-blue-500"
+                    : "bg-white text-gray-700 border border-gray-300 hover:border-gray-400"
                 }`}
               >
                 {tag}
@@ -200,8 +200,8 @@ export default function ReviewsPage() {
                 onClick={() => handleTagClick(tag)}
                 className={`px-4 py-2 text-sm rounded-full transition-all ${
                   selectedTags.includes(tag)
-                    ? "bg-blue-500 text-white"
-                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                    ? "bg-blue-500 text-white border border-blue-500"
+                    : "bg-white text-gray-700 border border-gray-300 hover:border-gray-400"
                 }`}
               >
                 {tag}
@@ -224,7 +224,9 @@ export default function ReviewsPage() {
           <textarea
             value={reviewText}
             onChange={(e) => setReviewText(e.target.value)}
-            placeholder="예) 신품이 다양하고 신신품도 자주 들어와요! 분위기도 좋았어요."
+            placeholder={`매장 리뷰를 10자 이상 써주세요.
+
+예) 신품이 다양하고 신신품도 자주 들어와요! 분위기도 좋았어요.`}
             className="w-full p-3 border border-gray-300 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             rows={3}
             maxLength={200}
