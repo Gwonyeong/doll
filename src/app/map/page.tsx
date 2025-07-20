@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import { useEffect, useRef, useState } from "react";
@@ -6,6 +5,7 @@ import { motion } from "framer-motion";
 import { MapPin, Menu, X, Navigation, Star } from "lucide-react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
+import StoreInfo from "@/components/StoreInfo";
 
 // 네이버 지도 타입 정의
 declare global {
@@ -353,14 +353,14 @@ export default function MapPage() {
     try {
       const response = await fetch(`/api/reviews?storeId=${storeId}`);
       const result = await response.json();
-      
+
       if (result.success) {
         setReviews(result.data.reviews);
       } else {
         setReviews([]);
       }
     } catch (error) {
-      console.error('리뷰 로드 에러:', error);
+      console.error("리뷰 로드 에러:", error);
       setReviews([]);
     } finally {
       setReviewsLoading(false);
@@ -373,7 +373,7 @@ export default function MapPage() {
       if (isDragging) {
         const deltaY = dragStartY - e.clientY;
         setDragOffset(Math.max(0, deltaY));
-        
+
         // 150px 이상 드래그하면 전체 화면으로 확장
         if (deltaY > 150) {
           setIsBottomSheetExpanded(true);
@@ -387,7 +387,7 @@ export default function MapPage() {
       if (isDragging) {
         const deltaY = dragStartY - e.touches[0].clientY;
         setDragOffset(Math.max(0, deltaY));
-        
+
         // 150px 이상 드래그하면 전체 화면으로 확장
         if (deltaY > 150) {
           setIsBottomSheetExpanded(true);
@@ -408,17 +408,17 @@ export default function MapPage() {
     };
 
     if (isDragging) {
-      document.addEventListener('mousemove', handleMouseMove);
-      document.addEventListener('mouseup', handleMouseUp);
-      document.addEventListener('touchmove', handleTouchMove);
-      document.addEventListener('touchend', handleTouchEnd);
+      document.addEventListener("mousemove", handleMouseMove);
+      document.addEventListener("mouseup", handleMouseUp);
+      document.addEventListener("touchmove", handleTouchMove);
+      document.addEventListener("touchend", handleTouchEnd);
     }
 
     return () => {
-      document.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('mouseup', handleMouseUp);
-      document.removeEventListener('touchmove', handleTouchMove);
-      document.removeEventListener('touchend', handleTouchEnd);
+      document.removeEventListener("mousemove", handleMouseMove);
+      document.removeEventListener("mouseup", handleMouseUp);
+      document.removeEventListener("touchmove", handleTouchMove);
+      document.removeEventListener("touchend", handleTouchEnd);
     };
   }, [isDragging, dragStartY]);
 
@@ -445,7 +445,6 @@ export default function MapPage() {
           </div>
         </div>
       )}
-
 
       {/* 사이드 메뉴 */}
       <motion.div
@@ -568,36 +567,40 @@ export default function MapPage() {
       {selectedStore && (
         <div
           className={`fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-lg z-50 transform transition-transform duration-300 ease-in-out ${
-            isBottomSheetExpanded ? 'top-0' : ''
+            isBottomSheetExpanded ? "top-0" : ""
           }`}
           style={{
-            height: isBottomSheetExpanded ? '100vh' : `${450 + dragOffset}px`,
-            borderTopLeftRadius: isBottomSheetExpanded ? '0px' : '20px',
-            borderTopRightRadius: isBottomSheetExpanded ? '0px' : '20px',
+            height: isBottomSheetExpanded ? "100vh" : `${450 + dragOffset}px`,
+            borderTopLeftRadius: isBottomSheetExpanded ? "0px" : "20px",
+            borderTopRightRadius: isBottomSheetExpanded ? "0px" : "20px",
             boxShadow: "0px -4px 9px 0px #0000001A",
-            transform: isDragging ? 'none' : undefined,
+            transform: isDragging ? "none" : undefined,
           }}
         >
-          {/* 드래그 핸들 */}
-          <div
-            className="w-full py-3 cursor-pointer flex justify-center hover:bg-gray-50 transition-colors"
-            onMouseDown={(e) => {
-              setIsDragging(true);
-              setDragStartY(e.clientY);
-            }}
-            onTouchStart={(e) => {
-              setIsDragging(true);
-              setDragStartY(e.touches[0].clientY);
-            }}
-          >
-            <div className={`w-12 h-1 rounded-full transition-colors ${
-              isDragging ? 'bg-blue-400' : 'bg-gray-300'
-            }`}></div>
-          </div>
+          {/* 드래그 핸들 - 확장되지 않았을 때만 표시 */}
+          {!isBottomSheetExpanded && (
+            <div
+              className="w-full py-3 cursor-pointer flex justify-center hover:bg-gray-50 transition-colors"
+              onMouseDown={(e) => {
+                setIsDragging(true);
+                setDragStartY(e.clientY);
+              }}
+              onTouchStart={(e) => {
+                setIsDragging(true);
+                setDragStartY(e.touches[0].clientY);
+              }}
+            >
+              <div
+                className={`w-12 h-1 rounded-full transition-colors ${
+                  isDragging ? "bg-blue-400" : "bg-gray-300"
+                }`}
+              ></div>
+            </div>
+          )}
 
           {/* 전체 화면일 때 헤더 */}
           {isBottomSheetExpanded && (
-            <div className="px-6 pb-4 border-b border-gray-200 flex items-center justify-between">
+            <div className="px-6 pb-4  border-gray-200 flex items-center justify-between">
               <button
                 onClick={() => setIsBottomSheetExpanded(false)}
                 className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
@@ -625,148 +628,20 @@ export default function MapPage() {
             </div>
           )}
 
-          {/* 전체 화면일 때 매장 이미지 */}
-          {isBottomSheetExpanded && (
-            <div className="px-6 mb-4">
-              <div className="w-full h-48 bg-gray-100 rounded-lg overflow-hidden">
-                <img
-                  src="/icon/defaultShop.svg"
-                  alt="매장 기본 이미지"
-                  className="w-full h-full object-cover"
-                />
-              </div>
-            </div>
-          )}
+          {/* 전체 화면일 때 매장 이미지 - 첫 번째 리뷰에 이미지가 없을 때만 표시 */}
 
-          <div className="p-6 h-full flex flex-col">
-            <div className={`flex justify-between items-start mb-4 ${
-              isBottomSheetExpanded ? 'hidden' : ''
-            }`}>
-              <div className="flex-1">
-                <h3 className="text-lg font-bold text-gray-900 mb-2">
-                  {selectedStore.name}
-                </h3>
-                <div className="space-y-2">
-                  <div className="flex items-start gap-2">
-                    <MapPin className="w-4 h-4 text-gray-500 mt-0.5 flex-shrink-0" />
-                    <span
-                      className="text-sm text-gray-600 leading-relaxed underline cursor-pointer hover:text-gray-800 transition-colors"
-                      onClick={() => {
-                        navigator.clipboard
-                          .writeText(selectedStore.address)
-                          .then(() => {
-                            alert("복사를 완료했어요!");
-                          })
-                          .catch(() => {
-                            alert("복사에 실패했습니다.");
-                          });
-                      }}
-                    >
-                      {selectedStore.address}
-                    </span>
-                  </div>
-
-                  {selectedStore.phone && (
-                    <div className="flex items-center gap-2">
-                      <svg
-                        className="w-4 h-4 text-gray-500 flex-shrink-0"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"
-                        />
-                      </svg>
-                      <a
-                        href={`tel:${selectedStore.phone}`}
-                        className="text-sm text-blue-600 hover:text-blue-800 underline"
-                      >
-                        {selectedStore.phone}
-                      </a>
-                    </div>
-                  )}
-
-                  <div className="flex items-center gap-2">
-                    <Navigation className="w-4 h-4 text-gray-500 flex-shrink-0" />
-                    <span
-                      className="text-sm font-medium"
-                      style={{ color: "#3182F8" }}
-                    >
-                      현재 위치에서 {selectedStore.distance}km 도보{" "}
-                      {Math.round(selectedStore.distance * 12)}분
-                    </span>
-                  </div>
-
-                  {selectedStore.gameCount && (
-                    <div className="relative">
-                      <div className="flex items-center gap-2">
-                        <svg
-                          className="w-4 h-4 text-gray-500 flex-shrink-0"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"
-                          />
-                        </svg>
-                        <span className="text-sm text-gray-600">
-                          게임기 {selectedStore.gameCount}대
-                        </span>
-                        <button
-                          onClick={() =>
-                            setShowGameCountInfo(!showGameCountInfo)
-                          }
-                          className="ml-1 hover:opacity-70 transition-opacity"
-                        >
-                          <svg
-                            width="19"
-                            height="19"
-                            viewBox="0 0 19 19"
-                            fill="none"
-                            xmlns="http://www.w3.org/2000/svg"
-                          >
-                            <rect
-                              width="19"
-                              height="19"
-                              rx="9.5"
-                              fill="#EFEFEF"
-                            />
-                            <path
-                              d="M8.58011 11.0552C8.58564 10.5497 8.63812 10.1409 8.73757 9.82873C8.83978 9.51381 8.98066 9.26243 9.16022 9.07459C9.33978 8.88398 9.58011 8.69613 9.88122 8.51105C10.1436 8.35083 10.3522 8.15193 10.5069 7.91436C10.6644 7.6768 10.7431 7.40331 10.7431 7.09392C10.7431 6.83149 10.6809 6.60221 10.5566 6.40608C10.4351 6.20718 10.268 6.05387 10.0552 5.94613C9.84254 5.8384 9.60773 5.78453 9.35083 5.78453C9.11602 5.78453 8.89503 5.83287 8.68785 5.92956C8.48343 6.02624 8.31354 6.1768 8.17818 6.38121C8.04282 6.58287 7.96409 6.83702 7.94199 7.14365H6.87293C6.89227 6.68232 7.01243 6.28315 7.23343 5.94613C7.45718 5.60635 7.75276 5.34668 8.12017 5.16713C8.49033 4.98757 8.90055 4.89779 9.35083 4.89779C9.83149 4.89779 10.2541 4.99447 10.6188 5.18784C10.9862 5.37845 11.2693 5.64365 11.4682 5.98343C11.6699 6.3232 11.7707 6.70718 11.7707 7.13536C11.7707 7.58287 11.6713 7.97099 11.4724 8.29972C11.2735 8.62845 10.9862 8.90884 10.6105 9.14088C10.3591 9.29558 10.1616 9.45442 10.018 9.6174C9.87707 9.78039 9.77348 9.97514 9.70718 10.2017C9.64088 10.4282 9.60497 10.7127 9.59945 11.0552V11.105H8.58011V11.0552ZM9.12707 13.5663C8.99171 13.5663 8.86464 13.5331 8.74586 13.4669C8.62983 13.3978 8.53729 13.3052 8.46823 13.1892C8.40193 13.0732 8.37017 12.9475 8.37293 12.8122C8.37017 12.6768 8.40193 12.5511 8.46823 12.4351C8.53729 12.3191 8.62983 12.2279 8.74586 12.1616C8.86464 12.0925 8.99171 12.058 9.12707 12.058C9.26243 12.058 9.38812 12.0925 9.50414 12.1616C9.62017 12.2279 9.71133 12.3191 9.77762 12.4351C9.84669 12.5511 9.88122 12.6768 9.88122 12.8122C9.88122 12.9475 9.84669 13.0732 9.77762 13.1892C9.71133 13.3052 9.62017 13.3978 9.50414 13.4669C9.38812 13.5331 9.26243 13.5663 9.12707 13.5663Z"
-                              fill="#ACACAC"
-                            />
-                          </svg>
-                        </button>
-                      </div>
-
-                      {/* 게임기 수 설명 박스 */}
-                      {showGameCountInfo && (
-                        <div
-                          className="absolute top-full mt-2 px-3 py-2 rounded-lg text-xs text-white leading-relaxed whitespace-nowrap z-10"
-                          style={{
-                            backgroundColor: "#646464",
-                            left: "calc(6rem + 8px)", // SVG 아이콘의 왼쪽 끝선과 정렬
-                          }}
-                        >
-                          게임기 수는 인형뽑기 외에도,
-                          <br />
-                          다른 종류의 오락 기기를 포함한
-                          <br />
-                          매장 내 모든 게임기의 수를 의미해요.
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-              </div>
+          <div className=" h-full flex flex-col">
+            <div
+              className={`flex justify-between items-start mb-4 p-6 ${
+                isBottomSheetExpanded ? "hidden" : ""
+              }`}
+            >
+              <StoreInfo
+                name={selectedStore.name}
+                address={selectedStore.address}
+                distance={selectedStore.distance}
+                gameCount={selectedStore.gameCount}
+              />
 
               <button
                 onClick={() => setSelectedStore(null)}
@@ -777,9 +652,11 @@ export default function MapPage() {
             </div>
 
             {/* 리뷰 섹션 */}
-            <div className={`border-t border-gray-200 pt-4 mt-4 ${
-              isBottomSheetExpanded ? 'flex-1 overflow-y-auto' : ''
-            }`}>
+            <div
+              className={` border-gray-200   ${
+                isBottomSheetExpanded ? "flex-1 overflow-y-auto pb-42" : "pb-20"
+              }`}
+            >
               {reviewsLoading ? (
                 <div className="text-center py-4">
                   <p className="text-sm text-gray-500">후기를 불러오는 중...</p>
@@ -790,64 +667,173 @@ export default function MapPage() {
                 </div>
               ) : isBottomSheetExpanded ? (
                 // 전체 화면일 때 리뷰 레이아웃
-                <div className="space-y-4">
-                  {reviews.map((review) => (
-                    <div key={review.id} className="bg-white border border-gray-200 rounded-lg p-4">
-                      <div className="flex items-start gap-3">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-2">
-                            <div className="flex gap-1">
-                              {[1, 2, 3, 4, 5].map((star) => (
-                                <Star
-                                  key={star}
-                                  size={16}
-                                  className={
-                                    star <= review.rating
-                                      ? "fill-yellow-400 text-yellow-400"
-                                      : "fill-gray-200 text-gray-200"
-                                  }
+                <div className="px-6">
+                  {/* 첫 번째 리뷰의 이미지 섹션 */}
+                  {reviews[0]?.images && reviews[0].images.length > 0 && (
+                    <div className="-mx-6 mb-6">
+                      {reviews[0].images.length === 1 ? (
+                        // 이미지 1장인 경우
+                        <div className="relative w-full h-64">
+                          <Image
+                            src={reviews[0].images[0]}
+                            alt="리뷰 이미지"
+                            fill
+                            className="object-cover"
+                          />
+                        </div>
+                      ) : reviews[0].images.length === 2 ? (
+                        // 이미지 2장인 경우 - 가장 최신 이미지만 출력
+                        <div className="relative w-full h-64">
+                          <Image
+                            src={reviews[0].images[0]}
+                            alt="리뷰 이미지"
+                            fill
+                            className="object-cover"
+                          />
+                        </div>
+                      ) : (
+                        // 이미지 3장 이상인 경우 - 2:1 레이아웃
+                        <div className="grid grid-cols-3 h-64">
+                          <div className="col-span-2 relative">
+                            <Image
+                              src={reviews[0].images[0]}
+                              alt="리뷰 이미지 1"
+                              fill
+                              className="object-cover"
+                            />
+                          </div>
+                          <div className="grid grid-rows-2">
+                            <div className="relative">
+                              <Image
+                                src={reviews[0].images[1]}
+                                alt="리뷰 이미지 2"
+                                fill
+                                className="object-cover"
+                              />
+                            </div>
+                            <div className="relative">
+                              <Image
+                                src={reviews[0].images[2]}
+                                alt="리뷰 이미지 3"
+                                fill
+                                className="object-cover"
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* 매장 정보 섹션 */}
+                  <div className="mb-6">
+                    <StoreInfo
+                      name={selectedStore.name}
+                      address={selectedStore.address}
+                      distance={selectedStore.distance}
+                      gameCount={selectedStore.gameCount}
+                      isExpanded={true}
+                    />
+                  </div>
+
+                  {/* 리뷰 리스트 */}
+                  <div className="space-y-4">
+                    {reviews.map((review) => (
+                      <div
+                        key={review.id}
+                        className="bg-white border-b border-gray-200 p-4"
+                      >
+                        {/* 별점 - 좌측 상단 */}
+                        <div className="flex gap-1 mb-3">
+                          {[1, 2, 3, 4, 5].map((star) => (
+                            <Star
+                              key={star}
+                              size={16}
+                              className={
+                                star <= review.rating
+                                  ? "fill-yellow-400 text-yellow-400"
+                                  : "fill-gray-200 text-gray-200"
+                              }
+                            />
+                          ))}
+                        </div>
+
+                        {/* 이미지 - 별점 바로 아래 (최대 4장, 좌우 공백 없이) */}
+                        {review.images.length > 0 && (
+                          <div className="grid grid-cols-4 gap-1 mb-3">
+                            {review.images.slice(0, 4).map((image, index) => (
+                              <div
+                                key={index}
+                                className="relative aspect-square bg-gray-100 rounded overflow-hidden"
+                              >
+                                <Image
+                                  src={image}
+                                  alt={`리뷰 이미지 ${index + 1}`}
+                                  fill
+                                  className="object-cover"
+                                />
+                              </div>
+                            ))}
+                            {/* 빈 이미지 슬롯 채우기 */}
+                            {review.images.length < 4 &&
+                              Array.from({
+                                length: 4 - review.images.length,
+                              }).map((_, index) => (
+                                <div
+                                  key={`empty-${index}`}
+                                  className="aspect-square bg-gray-50 rounded"
                                 />
                               ))}
-                            </div>
-                            <span className="text-sm text-gray-500">
-                              {new Date(review.createdAt).toLocaleDateString('ko-KR', {
-                                year: '2-digit',
-                                month: '2-digit',
-                                day: '2-digit'
-                              }).replace(/\./g, '.').slice(0, -1)}
-                            </span>
                           </div>
-                          <p className="text-sm text-gray-700 leading-relaxed mb-3">
-                            {review.content}
-                          </p>
-                          {review.images.length > 0 && (
-                            <div className="flex gap-2 flex-wrap">
-                              {review.images.map((image, index) => (
-                                <div key={index} className="w-16 h-16 bg-gray-100 rounded-lg overflow-hidden">
-                                  <Image
-                                    src={image}
-                                    alt={`리뷰 이미지 ${index + 1}`}
-                                    width={64}
-                                    height={64}
-                                    className="w-full h-full object-cover"
-                                  />
-                                </div>
-                              ))}
-                            </div>
-                          )}
+                        )}
+
+                        {/* 태그 - 이미지 아래 */}
+                        {review.tags.length > 0 && (
+                          <div className="flex flex-wrap gap-2 mb-3">
+                            {review.tags.map((tag, index) => (
+                              <span
+                                key={index}
+                                className="text-sm text-gray-600"
+                              >
+                                #{tag}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+
+                        {/* 후기 내용 - 태그 아래 */}
+                        <p className="text-sm text-gray-700 leading-relaxed mb-2">
+                          {review.content}
+                        </p>
+
+                        {/* 날짜 - 후기 내용 아래 우측 */}
+                        <div className="text-right">
+                          <span className="text-xs text-gray-500">
+                            {new Date(review.createdAt)
+                              .toLocaleDateString("ko-KR", {
+                                year: "2-digit",
+                                month: "2-digit",
+                                day: "2-digit",
+                              })
+                              .replace(/\./g, ".")
+                              .slice(0, -1)}
+                          </span>
                         </div>
                       </div>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
               ) : (
                 // 기본 바텀시트일 때 리뷰 레이아웃
-                <div 
-                  className="flex gap-4 overflow-x-auto pb-2 -mx-2 px-2 scrollbar-hide" 
-                  style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+                <div
+                  className="flex gap-4  overflow-x-auto pb-2 mx-2 px-2 scrollbar-hide"
+                  style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
                 >
                   {reviews.map((review) => (
-                    <div key={review.id} className="flex-shrink-0 w-72 bg-gray-50 rounded-lg p-3 relative">
+                    <div
+                      key={review.id}
+                      className="flex-shrink-0 w-72 bg-gray-50 rounded-lg p-3 relative"
+                    >
                       {/* 상단 영역: 별점(좌측) + 날짜(우측) */}
                       <div className="flex items-center justify-between mb-3">
                         {/* 별점 - 왼쪽 상단 */}
@@ -864,29 +850,31 @@ export default function MapPage() {
                             />
                           ))}
                         </div>
-                        
+
                         {/* 날짜 - 우측 상단 */}
                         <span className="text-xs text-gray-500">
-                          {new Date(review.createdAt).toLocaleDateString('ko-KR', {
-                            year: '2-digit',
-                            month: '2-digit',
-                            day: '2-digit'
-                          }).replace(/\./g, '.').slice(0, -1)}
+                          {new Date(review.createdAt)
+                            .toLocaleDateString("ko-KR", {
+                              year: "2-digit",
+                              month: "2-digit",
+                              day: "2-digit",
+                            })
+                            .replace(/\./g, ".")
+                            .slice(0, -1)}
                         </span>
                       </div>
-                      
+
                       {/* 하단 영역 */}
                       <div className="flex justify-between items-end">
                         {/* 왼쪽: 리뷰 내용 */}
                         <div className="flex-1 pr-3">
                           <p className="text-sm text-gray-700 leading-relaxed">
-                            {review.content.length > 60 
+                            {review.content.length > 60
                               ? `${review.content.substring(0, 60)}...더보기`
-                              : review.content
-                            }
+                              : review.content}
                           </p>
                         </div>
-                        
+
                         {/* 오른쪽: 이미지 */}
                         {review.images.length > 0 && (
                           <div className="flex-shrink-0">
@@ -912,31 +900,32 @@ export default function MapPage() {
                 </div>
               )}
             </div>
+          </div>
 
-            <div className="mt-4">
-              <button
-                onClick={() => {
-                  router.push(`/reviews/${selectedStore.id}`);
-                }}
-                className="w-full py-3 px-4 rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
-                style={{ backgroundColor: "#3182F8", color: "white" }}
+          {/* 고정된 후기 작성하기 버튼 */}
+          <div className="absolute bottom-0 left-0 right-0 p-4 bg-white border-t border-gray-200">
+            <button
+              onClick={() => {
+                router.push(`/reviews/${selectedStore.id}`);
+              }}
+              className="w-full py-3 px-4 rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
+              style={{ backgroundColor: "#3182F8", color: "white" }}
+            >
+              <svg
+                className="w-4 h-4"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
               >
-                <svg
-                  className="w-4 h-4"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"
-                  />
-                </svg>
-                후기 작성하기
-              </button>
-            </div>
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"
+                />
+              </svg>
+              후기 작성하기
+            </button>
           </div>
         </div>
       )}
