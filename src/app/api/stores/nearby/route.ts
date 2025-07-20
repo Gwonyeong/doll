@@ -52,10 +52,6 @@ export async function GET(request: NextRequest) {
     const radius = parseFloat(searchParams.get("radius") || "5"); // 기본 5km
     const limit = parseInt(searchParams.get("limit") || "50");
 
-    console.log(
-      `API 호출: lat=${lat}, lng=${lng}, radius=${radius}, limit=${limit}`
-    );
-
     // 데이터베이스에서 좌표가 있는 게임업소 조회
     const gameBusinesses = await prisma.gameBusiness.findMany({
       where: {
@@ -79,25 +75,17 @@ export async function GET(request: NextRequest) {
         총게임기수: true,
         시설면적: true,
       },
-      take: 2000, // 성능을 위해 제한
+      // take: 1000, // 성능 최적화를 위해 제한 감소
     });
 
-    console.log(`데이터베이스에서 ${gameBusinesses.length}개 데이터 조회`);
-
-    // 좌표 변환 및 거리 필터링
+    // 좌표 변환 및 거리 필터링 최적화
     const nearbyStores = [];
-    let processedCount = 0;
-    let validCoordCount = 0;
-    let withinRadiusCount = 0;
 
     for (const business of gameBusinesses) {
-      processedCount++;
-
       const x = parseFloat(business.좌표정보x || "0");
       const y = parseFloat(business.좌표정보y || "0");
 
       if (x === 0 || y === 0) continue;
-      validCoordCount++;
 
       const coords = convertEPSG5174ToWGS84(x, y);
 
@@ -113,10 +101,21 @@ export async function GET(request: NextRequest) {
         continue;
       }
 
+      // 간단한 거리 체크로 먼저 필터링 (정확한 계산 전에)
+      const latDiff = Math.abs(coords.lat - lat);
+      const lngDiff = Math.abs(coords.lng - lng);
+
+      // 대략적인 거리 체크 (1도 ≈ 111km)
+      if (
+        latDiff > radius / 111 ||
+        lngDiff > radius / (111 * Math.cos((lat * Math.PI) / 180))
+      ) {
+        continue;
+      }
+
       const distance = calculateDistance(lat, lng, coords.lat, coords.lng);
 
       if (distance <= radius) {
-        withinRadiusCount++;
         nearbyStores.push({
           id: business.id,
           name: business.사업장명,
@@ -133,37 +132,24 @@ export async function GET(request: NextRequest) {
               : null,
           area: business.시설면적,
         });
-      }
 
-      // 처리 진행 상황 로그 (100개마다)
-      if (processedCount % 100 === 0) {
-        console.log(
-          `처리 진행: ${processedCount}/${gameBusinesses.length}, 유효좌표: ${validCoordCount}, 반경내: ${withinRadiusCount}`
-        );
+        // 충분한 결과가 있으면 조기 종료
+        if (nearbyStores.length >= limit * 2) {
+          break;
+        }
       }
     }
-
-    console.log(
-      `최종 결과: 처리=${processedCount}, 유효좌표=${validCoordCount}, 반경내=${withinRadiusCount}`
-    );
 
     // 거리순으로 정렬하고 제한
     const sortedStores = nearbyStores
       .sort((a, b) => a.distance - b.distance)
       .slice(0, limit);
-    console.log(sortedStores.map((store) => store.phone));
-    console.log(`응답 데이터: ${sortedStores.length}개`);
 
     return NextResponse.json({
       success: true,
       data: sortedStores,
       total: sortedStores.length,
-      debug: {
-        processed: processedCount,
-        validCoords: validCoordCount,
-        withinRadius: withinRadiusCount,
-        searchParams: { lat, lng, radius, limit },
-      },
+      searchParams: { lat, lng, radius, limit },
     });
   } catch (error) {
     console.error("API Error:", error);

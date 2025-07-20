@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useRef, useState, useCallback, useMemo } from "react";
 import { motion } from "framer-motion";
 import { MapPin, X, Star } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -165,7 +165,6 @@ export default function MapPage() {
 
       if (result.success) {
         setStores(result.data);
-        console.log(`${result.total}개의 근처 매장을 찾았습니다.`);
       } else {
         console.error("매장 데이터를 가져오는데 실패했습니다:", result.error);
       }
@@ -178,10 +177,8 @@ export default function MapPage() {
 
   // 지도 초기화
   useEffect(() => {
-    console.log("Map initialization started");
 
     if (!mapRef.current) {
-      console.error("Map container not found");
       return;
     }
 
@@ -199,14 +196,12 @@ export default function MapPage() {
             fetchNearbyStores(location.lat, location.lng);
           },
           (error) => {
-            console.error("위치 정보를 가져올 수 없습니다:", error);
             // 기본 위치 (서울 중심)로 초기화
             initializeMap(37.5665, 126.978);
             fetchNearbyStores(37.5665, 126.978);
           }
         );
       } else {
-        console.error("Geolocation이 지원되지 않습니다.");
         // 기본 위치로 초기화
         initializeMap(37.5665, 126.978);
         fetchNearbyStores(37.5665, 126.978);
@@ -214,11 +209,9 @@ export default function MapPage() {
     };
 
     if (!window.naver) {
-      console.error("Naver Maps API not loaded");
       // API 로딩 대기
       const checkNaverMaps = setInterval(() => {
         if (window.naver && window.naver.maps) {
-          console.log("Naver Maps API loaded successfully");
           clearInterval(checkNaverMaps);
           initializeWithUserLocation();
         }
@@ -227,7 +220,6 @@ export default function MapPage() {
       // 10초 후 타임아웃
       setTimeout(() => {
         clearInterval(checkNaverMaps);
-        console.error("Naver Maps API loading timeout");
       }, 10000);
 
       return;
@@ -238,7 +230,6 @@ export default function MapPage() {
     function initializeMap(lat: number, lng: number) {
       if (!mapRef.current || !window.naver) return;
 
-      console.log("Creating map with user location center");
       const mapOptions = {
         center: new window.naver.maps.LatLng(lat, lng), // 사용자 위치를 중심으로
         zoom: 15, // 더 가까운 줌 레벨
@@ -251,7 +242,6 @@ export default function MapPage() {
 
       try {
         const naverMap = new window.naver.maps.Map(mapRef.current, mapOptions);
-        console.log("Map created successfully with user location:", naverMap);
         setMap(naverMap);
       } catch (error) {
         console.error("Error creating map:", error);
@@ -345,26 +335,27 @@ export default function MapPage() {
       newMarkers.push(userMarker);
     }
 
-    console.log(`${stores.length}개의 매장 마커를 생성했습니다.`);
-  }, [map, stores, userLocation, selectedStore, fetchReviews, markers]); // selectedStore 의존성 추가
+  }, [map, stores, userLocation, selectedStore, fetchReviews]); // markers 제거하여 무한 리렌더링 방지
 
-  // 필터링된 매장 목록
-  const filteredStores = stores.filter((store) => {
-    const matchesCategory =
-      filterCategory === "전체" || store.category.includes(filterCategory);
-    return matchesCategory;
-  });
+  // 필터링된 매장 목록 (useMemo로 최적화)
+  const filteredStores = useMemo(() => {
+    return stores.filter((store) => {
+      const matchesCategory =
+        filterCategory === "전체" || store.category.includes(filterCategory);
+      return matchesCategory;
+    });
+  }, [stores, filterCategory]);
 
-  // 매장 카테고리 (실제 데이터 기반)
-  const categories = ["전체", "게임제공업", "청소년게임제공업"];
+  // 매장 카테고리 (실제 데이터 기반) - useMemo로 최적화
+  const categories = useMemo(() => ["전체", "게임제공업", "청소년게임제공업"], []);
 
-  // 반경 변경 핸들러
-  const handleRadiusChange = (newRadius: number) => {
+  // 반경 변경 핸들러 (useCallback으로 최적화)
+  const handleRadiusChange = useCallback((newRadius: number) => {
     setRadius(newRadius);
     if (userLocation) {
       fetchNearbyStores(userLocation.lat, userLocation.lng);
     }
-  };
+  }, [userLocation, fetchNearbyStores]);
 
   // 드래그 이벤트 핸들러
   useEffect(() => {
@@ -429,7 +420,6 @@ export default function MapPage() {
     }
   }, [selectedStore]);
 
-  console.log(selectedStore);
   return (
     <div className="relative w-full h-screen overflow-hidden">
       {/* 네이버 지도 */}
@@ -565,21 +555,22 @@ export default function MapPage() {
       {/* 선택된 매장 정보 카드 */}
       {selectedStore && (
         <div
-          className={`fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-lg z-50 transform transition-transform duration-300 ease-in-out ${
-            isBottomSheetExpanded ? "top-0" : ""
-          }`}
+          className={`fixed bg-white border-t border-gray-200 shadow-lg z-50 transform transition-transform duration-300 ease-in-out 
+            ${isBottomSheetExpanded ? "top-0 left-0 right-0" : "bottom-0 left-0 right-0 md:bottom-4 md:left-4 md:right-auto md:w-96 md:rounded-2xl md:border"}
+          `}
           style={{
             height: isBottomSheetExpanded ? "100vh" : `${450 + dragOffset}px`,
             borderTopLeftRadius: isBottomSheetExpanded ? "0px" : "20px",
             borderTopRightRadius: isBottomSheetExpanded ? "0px" : "20px",
             boxShadow: "0px -4px 9px 0px #0000001A",
             transform: isDragging ? "none" : undefined,
+            maxHeight: isBottomSheetExpanded ? "100vh" : "calc(100vh - 100px)",
           }}
         >
           {/* 드래그 핸들 - 확장되지 않았을 때만 표시 */}
           {!isBottomSheetExpanded && (
             <div
-              className="w-full py-3 cursor-pointer flex justify-center hover:bg-gray-50 transition-colors"
+              className="w-full py-3 cursor-pointer flex justify-center hover:bg-gray-50 transition-colors md:hidden"
               onMouseDown={(e) => {
                 setIsDragging(true);
                 setDragStartY(e.clientY);
@@ -594,6 +585,38 @@ export default function MapPage() {
                   isDragging ? "bg-blue-400" : "bg-gray-300"
                 }`}
               ></div>
+            </div>
+          )}
+
+          {/* PC 환경용 확장 버튼 */}
+          {!isBottomSheetExpanded && (
+            <div className="hidden md:flex justify-between items-center p-4 border-b border-gray-200">
+              <h3 className="text-lg font-semibold">{selectedStore.name}</h3>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setIsBottomSheetExpanded(true)}
+                  className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                  title="상세보기"
+                >
+                  <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                  >
+                    <path d="M7 13l3 3 7-7" />
+                    <path d="M7 7h10v10" />
+                  </svg>
+                </button>
+                <button
+                  onClick={() => setSelectedStore(null)}
+                  className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                >
+                  <X className="w-4 h-4 text-gray-500" />
+                </button>
+              </div>
             </div>
           )}
 
@@ -633,7 +656,7 @@ export default function MapPage() {
             <div
               className={`flex justify-between items-start mb-4 p-6 ${
                 isBottomSheetExpanded ? "hidden" : ""
-              }`}
+              } md:hidden`}
             >
               <StoreInfo
                 name={selectedStore.name}
@@ -904,10 +927,12 @@ export default function MapPage() {
           {/* 고정된 후기 작성하기 버튼 */}
           <div className="absolute bottom-0 left-0 right-0 p-4 bg-white border-t border-gray-200">
             <button
-              onClick={() => {
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
                 router.push(`/reviews/${selectedStore.id}`);
               }}
-              className="w-full py-3 px-4 rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
+              className="w-full py-3 px-4 rounded-lg font-medium transition-colors flex items-center justify-center gap-2 hover:opacity-90 active:scale-[0.98]"
               style={{ backgroundColor: "#3182F8", color: "white" }}
             >
               <svg
