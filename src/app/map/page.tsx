@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { motion } from "framer-motion";
-import { MapPin, Menu, X, Navigation, Star } from "lucide-react";
+import { MapPin, X, Star } from "lucide-react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import StoreInfo from "@/components/StoreInfo";
@@ -75,13 +75,32 @@ export default function MapPage() {
   const [loading, setLoading] = useState(false);
   const [radius, setRadius] = useState(5); // 검색 반경 (km)
   const [markers, setMarkers] = useState<any[]>([]); // 마커 관리를 위한 상태 추가
-  const [showGameCountInfo, setShowGameCountInfo] = useState(false); // 게임기 수 설명 박스 표시 상태
   const [reviews, setReviews] = useState<Review[]>([]);
   const [reviewsLoading, setReviewsLoading] = useState(false);
   const [isBottomSheetExpanded, setIsBottomSheetExpanded] = useState(false);
   const [dragStartY, setDragStartY] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
   const [dragOffset, setDragOffset] = useState(0);
+
+  // 리뷰 데이터 가져오기
+  const fetchReviews = useCallback(async (storeId: number) => {
+    setReviewsLoading(true);
+    try {
+      const response = await fetch(`/api/reviews?storeId=${storeId}`);
+      const result = await response.json();
+
+      if (result.success) {
+        setReviews(result.data.reviews);
+      } else {
+        setReviews([]);
+      }
+    } catch (error) {
+      console.error("리뷰 로드 에러:", error);
+      setReviews([]);
+    } finally {
+      setReviewsLoading(false);
+    }
+  }, []);
 
   // 사용자 위치 가져오기
   const getUserLocation = () => {
@@ -136,7 +155,7 @@ export default function MapPage() {
   };
 
   // 근처 매장 데이터 가져오기
-  const fetchNearbyStores = async (lat: number, lng: number) => {
+  const fetchNearbyStores = useCallback(async (lat: number, lng: number) => {
     setLoading(true);
     try {
       const response = await fetch(
@@ -155,7 +174,7 @@ export default function MapPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [radius]);
 
   // 지도 초기화
   useEffect(() => {
@@ -238,7 +257,7 @@ export default function MapPage() {
         console.error("Error creating map:", error);
       }
     }
-  }, []);
+  }, [fetchNearbyStores]);
 
   // 매장 마커 생성
   useEffect(() => {
@@ -275,8 +294,8 @@ export default function MapPage() {
               <div class="transform hover:scale-110 transition-transform cursor-pointer">
                 ${svgIcon}
               </div>
-              <div class="absolute -bottom-8 left-1/2 transform -translate-x-1/2 bg-white px-2 py-1 rounded shadow-lg text-xs font-medium whitespace-nowrap">
-                ${store.distance}km
+              <div class="absolute -bottom-8 left-1/2 transform -translate-x-1/2 bg-white px-2 py-1 rounded shadow-lg text-xs font-medium whitespace-nowrap text-center">
+                ${store.name.length > 10 ? store.name.substring(0, 10) + '...' : store.name}
               </div>
             </div>
           `,
@@ -327,7 +346,7 @@ export default function MapPage() {
     }
 
     console.log(`${stores.length}개의 매장 마커를 생성했습니다.`);
-  }, [map, stores, userLocation, selectedStore]); // selectedStore 의존성 추가
+  }, [map, stores, userLocation, selectedStore, fetchReviews, markers]); // selectedStore 의존성 추가
 
   // 필터링된 매장 목록
   const filteredStores = stores.filter((store) => {
@@ -344,26 +363,6 @@ export default function MapPage() {
     setRadius(newRadius);
     if (userLocation) {
       fetchNearbyStores(userLocation.lat, userLocation.lng);
-    }
-  };
-
-  // 리뷰 데이터 가져오기
-  const fetchReviews = async (storeId: number) => {
-    setReviewsLoading(true);
-    try {
-      const response = await fetch(`/api/reviews?storeId=${storeId}`);
-      const result = await response.json();
-
-      if (result.success) {
-        setReviews(result.data.reviews);
-      } else {
-        setReviews([]);
-      }
-    } catch (error) {
-      console.error("리뷰 로드 에러:", error);
-      setReviews([]);
-    } finally {
-      setReviewsLoading(false);
     }
   };
 

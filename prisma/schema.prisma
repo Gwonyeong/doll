@@ -81,6 +81,12 @@ model GameBusiness {
 
   reviews Review[]
 
+  // 성능 최적화를 위한 인덱스
+  @@index([영업상태명, 좌표정보x, 좌표정보y], name: "idx_business_location")
+  @@index([좌표정보x, 좌표정보y], name: "idx_coordinates") 
+  @@index([영업상태명], name: "idx_business_status")
+  @@index([사업장명], name: "idx_business_name")
+  @@index([소재지전체주소], name: "idx_business_address")
   @@map("game_businesses")
 }
 
@@ -100,5 +106,9 @@ model Review {
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
   
+  // 성능 최적화를 위한 인덱스
+  @@index([storeId, createdAt], name: "idx_reviews_store_created")
+  @@index([storeId], name: "idx_reviews_store")
+  @@index([rating], name: "idx_reviews_rating")
   @@map("reviews")
 }

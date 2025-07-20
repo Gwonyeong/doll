@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 
 interface GameBusiness {
@@ -74,7 +74,7 @@ export default function AdminPage() {
   }, [router]);
 
   // 매장 데이터 가져오기
-  const fetchBusinesses = async (page: number = 1) => {
+  const fetchBusinesses = useCallback(async (page: number = 1) => {
     setLoading(true);
     try {
       const queryParams = new URLSearchParams({
@@ -105,7 +105,7 @@ export default function AdminPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [pagination.limit, filters]);
 
   // 필터 적용
   const applyFilters = () => {
@@ -129,7 +129,7 @@ export default function AdminPage() {
     if (activeTab === "stores" && isAuthenticated) {
       fetchBusinesses();
     }
-  }, [activeTab, isAuthenticated]);
+  }, [activeTab, isAuthenticated, fetchBusinesses]);
 
   if (!isAuthenticated) {
     return (
