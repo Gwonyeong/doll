@@ -14,6 +14,7 @@ export default function ReviewsPage() {
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [reviewText, setReviewText] = useState("");
   const [uploadedImages, setUploadedImages] = useState<string[]>([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // 임시 가게 정보
@@ -289,21 +290,24 @@ export default function ReviewsPage() {
         {/* 완료 버튼 */}
         <button
           className={`w-full mt-6 py-3 rounded-lg font-medium transition-all ${
-            userRating > 0 && selectedTags.length > 0 && reviewText.length >= 10
+            userRating > 0 && selectedTags.length > 0 && reviewText.length >= 10 && !isSubmitting
               ? "bg-blue-600 text-white hover:bg-blue-700"
               : "bg-gray-200 text-gray-400 cursor-not-allowed"
           }`}
           disabled={
             userRating === 0 ||
             selectedTags.length === 0 ||
-            reviewText.length < 10
+            reviewText.length < 10 ||
+            isSubmitting
           }
           onClick={async () => {
             if (
               userRating > 0 &&
               selectedTags.length > 0 &&
-              reviewText.length >= 10
+              reviewText.length >= 10 &&
+              !isSubmitting
             ) {
+              setIsSubmitting(true);
               try {
                 const response = await fetch("/api/reviews", {
                   method: "POST",
@@ -330,11 +334,13 @@ export default function ReviewsPage() {
               } catch (error) {
                 console.error("리뷰 제출 에러:", error);
                 alert("리뷰 등록 중 오류가 발생했습니다.");
+              } finally {
+                setIsSubmitting(false);
               }
             }
           }}
         >
-          완료
+          {isSubmitting ? "등록 중..." : "완료"}
         </button>
       </div>
     </div>

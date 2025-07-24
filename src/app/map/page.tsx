@@ -48,6 +48,8 @@ interface GameStore {
   category: string;
   gameCount?: number;
   area?: string;
+  averageRating?: number | null;
+  reviewCount?: number;
 }
 
 // 리뷰 타입
@@ -284,8 +286,12 @@ export default function MapPage() {
               <div class="transform hover:scale-110 transition-transform cursor-pointer">
                 ${svgIcon}
               </div>
-              <div class="absolute -bottom-8 left-1/2 transform -translate-x-1/2 bg-white px-2 py-1 rounded shadow-lg text-xs font-medium whitespace-nowrap text-center">
-                ${store.name.length > 10 ? store.name.substring(0, 10) + '...' : store.name}
+              <div class="absolute -bottom-12 left-1/2 transform -translate-x-1/2 bg-white px-2 py-1 rounded shadow-lg text-xs font-medium whitespace-nowrap text-center">
+                <div>${store.name.length > 10 ? store.name.substring(0, 10) + '...' : store.name}</div>
+                ${store.averageRating && store.reviewCount && store.reviewCount > 0 
+                  ? `<div class="text-yellow-500 text-xs mt-1">★${store.averageRating} (${store.reviewCount})</div>`
+                  : ''
+                }
               </div>
             </div>
           `,
@@ -523,9 +529,22 @@ export default function MapPage() {
                 >
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
-                      <h4 className="font-semibold text-gray-800 mb-1">
-                        {store.name}
-                      </h4>
+                      <div className="flex items-center gap-2 mb-1">
+                        <h4 className="font-semibold text-gray-800">
+                          {store.name}
+                        </h4>
+                        {store.averageRating && store.reviewCount && store.reviewCount > 0 && (
+                          <div className="flex items-center gap-1">
+                            <span className="text-yellow-500 text-sm">★</span>
+                            <span className="text-sm font-medium text-gray-700">
+                              {store.averageRating}
+                            </span>
+                            <span className="text-xs text-gray-500">
+                              ({store.reviewCount})
+                            </span>
+                          </div>
+                        )}
+                      </div>
                       <p className="text-sm text-gray-600 mb-2 line-clamp-2">
                         {store.address}
                       </p>

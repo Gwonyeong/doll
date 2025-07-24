@@ -52,7 +52,7 @@ export async function GET(request: NextRequest) {
     const radius = parseFloat(searchParams.get("radius") || "5"); // 기본 5km
     const limit = parseInt(searchParams.get("limit") || "50");
 
-    // 데이터베이스에서 좌표가 있는 게임업소 조회
+    // 데이터베이스에서 좌표가 있는 게임업소 조회 (리뷰 정보 포함)
     const gameBusinesses = await prisma.gameBusiness.findMany({
       where: {
         AND: [
@@ -74,6 +74,11 @@ export async function GET(request: NextRequest) {
         업태구분명: true,
         총게임기수: true,
         시설면적: true,
+        reviews: {
+          select: {
+            rating: true,
+          },
+        },
       },
       // take: 1000, // 성능 최적화를 위해 제한 감소
     });
@@ -116,6 +121,12 @@ export async function GET(request: NextRequest) {
       const distance = calculateDistance(lat, lng, coords.lat, coords.lng);
 
       if (distance <= radius) {
+        // 평균 별점 계산
+        const ratings = business.reviews.map(review => review.rating);
+        const averageRating = ratings.length > 0 
+          ? Math.round((ratings.reduce((sum, rating) => sum + rating, 0) / ratings.length) * 10) / 10
+          : null;
+        
         nearbyStores.push({
           id: business.id,
           name: business.사업장명,
@@ -131,6 +142,8 @@ export async function GET(request: NextRequest) {
               ? parseInt(business.총게임기수)
               : null,
           area: business.시설면적,
+          averageRating,
+          reviewCount: ratings.length,
         });
 
         // 충분한 결과가 있으면 조기 종료
