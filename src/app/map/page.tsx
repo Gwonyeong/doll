@@ -574,22 +574,22 @@ export default function MapPage() {
       {/* 선택된 매장 정보 카드 */}
       {selectedStore && (
         <div
-          className={`fixed bg-white border-t border-gray-200 shadow-lg z-50 transform transition-transform duration-300 ease-in-out 
-            ${isBottomSheetExpanded ? "top-0 left-0 right-0" : "bottom-0 left-0 right-0 md:bottom-4 md:left-4 md:right-auto md:w-96 md:rounded-2xl md:border"}
+          className={`fixed bg-white border-t border-gray-200 shadow-lg z-50
+            ${isBottomSheetExpanded ? "inset-0" : "bottom-0 left-1/2 -translate-x-1/2"}
           `}
           style={{
             height: isBottomSheetExpanded ? "100vh" : `${450 + dragOffset}px`,
             borderTopLeftRadius: isBottomSheetExpanded ? "0px" : "20px",
             borderTopRightRadius: isBottomSheetExpanded ? "0px" : "20px",
             boxShadow: "0px -4px 9px 0px #0000001A",
-            transform: isDragging ? "none" : undefined,
             maxHeight: isBottomSheetExpanded ? "100vh" : "calc(100vh - 100px)",
+            width: isBottomSheetExpanded ? "100%" : "min(600px, 100vw)",
           }}
         >
           {/* 드래그 핸들 - 확장되지 않았을 때만 표시 */}
           {!isBottomSheetExpanded && (
             <div
-              className="w-full py-3 cursor-pointer flex justify-center hover:bg-gray-50 transition-colors md:hidden"
+              className="w-full py-3 cursor-pointer flex justify-center hover:bg-gray-50 transition-colors"
               onMouseDown={(e) => {
                 setIsDragging(true);
                 setDragStartY(e.clientY);
@@ -607,67 +607,37 @@ export default function MapPage() {
             </div>
           )}
 
-          {/* PC 환경용 확장 버튼 */}
-          {!isBottomSheetExpanded && (
-            <div className="hidden md:flex justify-between items-center p-4 border-b border-gray-200">
-              <h3 className="text-lg font-semibold">{selectedStore.name}</h3>
-              <div className="flex gap-2">
+          {/* 확장된 상태일 때 내부 컨테이너 */}
+          <div className={`${isBottomSheetExpanded ? "max-w-[600px] mx-auto w-full" : ""}`}>          
+            {/* 전체 화면일 때 헤더 */}
+            {isBottomSheetExpanded && (
+              <div className="px-6 pb-4  border-gray-200 flex items-center justify-between">
                 <button
-                  onClick={() => setIsBottomSheetExpanded(true)}
+                  onClick={() => setIsBottomSheetExpanded(false)}
                   className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-                  title="상세보기"
                 >
                   <svg
-                    width="16"
-                    height="16"
+                    width="24"
+                    height="24"
                     viewBox="0 0 24 24"
                     fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
+                    xmlns="http://www.w3.org/2000/svg"
                   >
-                    <path d="M7 13l3 3 7-7" />
-                    <path d="M7 7h10v10" />
+                    <path
+                      d="M15 18L9 12L15 6"
+                      stroke="#374151"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
                   </svg>
                 </button>
-                <button
-                  onClick={() => setSelectedStore(null)}
-                  className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-                >
-                  <X className="w-4 h-4 text-gray-500" />
-                </button>
+                <h2 className="text-lg font-semibold text-gray-900">
+                  {selectedStore.name}
+                </h2>
+                <div className="w-10"></div>
               </div>
-            </div>
-          )}
-
-          {/* 전체 화면일 때 헤더 */}
-          {isBottomSheetExpanded && (
-            <div className="px-6 pb-4  border-gray-200 flex items-center justify-between">
-              <button
-                onClick={() => setIsBottomSheetExpanded(false)}
-                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-              >
-                <svg
-                  width="24"
-                  height="24"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  xmlns="http://www.w3.org/2000/svg"
-                >
-                  <path
-                    d="M15 18L9 12L15 6"
-                    stroke="#374151"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </svg>
-              </button>
-              <h2 className="text-lg font-semibold text-gray-900">
-                {selectedStore.name}
-              </h2>
-              <div className="w-10"></div>
-            </div>
-          )}
+            )}
 
           {/* 전체 화면일 때 매장 이미지 - 첫 번째 리뷰에 이미지가 없을 때만 표시 */}
 
@@ -675,7 +645,7 @@ export default function MapPage() {
             <div
               className={`flex justify-between items-start mb-4 p-6 ${
                 isBottomSheetExpanded ? "hidden" : ""
-              } md:hidden`}
+              }`}
             >
               <StoreInfo
                 name={selectedStore.name}
@@ -711,7 +681,7 @@ export default function MapPage() {
                 <div className="px-6">
                   {/* 첫 번째 리뷰의 이미지 섹션 */}
                   {reviews[0]?.images && reviews[0].images.length > 0 && (
-                    <div className="-mx-6 mb-6">
+                    <div className="mb-6">
                       {reviews[0].images.length === 1 ? (
                         // 이미지 1장인 경우
                         <div className="relative w-full h-64">
@@ -943,9 +913,11 @@ export default function MapPage() {
             </div>
           </div>
 
+          </div>
           {/* 고정된 후기 작성하기 버튼 */}
           <div className="absolute bottom-0 left-0 right-0 p-4 bg-white border-t border-gray-200">
-            <button
+            <div className={`${isBottomSheetExpanded ? "max-w-[600px] mx-auto" : ""}`}>            
+              <button
               onClick={(e) => {
                 e.preventDefault();
                 e.stopPropagation();
@@ -969,6 +941,7 @@ export default function MapPage() {
               </svg>
               후기 작성하기
             </button>
+            </div>
           </div>
         </div>
       )}

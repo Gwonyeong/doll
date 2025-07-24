@@ -64,10 +64,11 @@ export default function ReviewsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-white">
-      {/* 헤더 */}
-      <div className="sticky top-0 bg-white border-b border-gray-200 z-10">
-        <div className="flex items-center gap-4 p-4">
+    <div className="min-h-screen bg-white flex justify-center">
+      <div className="w-full max-w-[600px]">
+        {/* 헤더 */}
+        <div className="sticky top-0 bg-white border-b border-gray-200 z-10">
+          <div className="flex items-center gap-4 p-4">
           <button
             onClick={() => router.back()}
             className="p-2 -m-2 hover:bg-gray-100 rounded-lg transition-colors"
@@ -342,6 +343,7 @@ export default function ReviewsPage() {
         >
           {isSubmitting ? "등록 중..." : "완료"}
         </button>
+      </div>
       </div>
     </div>
   );

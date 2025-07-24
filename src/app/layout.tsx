@@ -29,8 +29,10 @@ export default function RootLayout({
           strategy="beforeInteractive"
         />
       </head>
-      <body className={`${pretendard.variable} antialiased`}>
-        {children}
+      <body className={`${pretendard.variable} antialiased bg-gray-50`}>
+        <div className="max-w-[600px] mx-auto min-h-screen bg-white shadow-lg">
+          {children}
+        </div>
         <Toaster position="bottom-center" />
       </body>
     </html>
