@@ -843,7 +843,8 @@ export default function MapPage() {
                   {reviews.map((review) => (
                     <div
                       key={review.id}
-                      className="flex-shrink-0 w-72 bg-gray-50 rounded-lg p-3 relative"
+                      className="flex-shrink-0 w-72 bg-gray-50 rounded-lg p-3 relative cursor-pointer hover:bg-gray-100 transition-colors"
+                      onClick={() => setIsBottomSheetExpanded(true)}
                     >
                       {/* 상단 영역: 별점(좌측) + 날짜(우측) */}
                       <div className="flex items-center justify-between mb-3">
