@@ -87,6 +87,9 @@ model GameBusiness {
   @@index([영업상태명], name: "idx_business_status")
   @@index([사업장명], name: "idx_business_name")
   @@index([소재지전체주소], name: "idx_business_address")
+  
+  // WHERE 절 최적화를 위한 복합 인덱스
+  @@index([영업상태명, 좌표정보x, 좌표정보y, 사업장명, 소재지전체주소], name: "idx_active_stores_with_location")
   @@map("game_businesses")
 }
 
