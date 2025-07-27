@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import { ChevronLeft, Star, X } from "lucide-react";
 import Image from "next/image";
 import { toast } from "sonner";
+import imageCompression from "browser-image-compression";
 
 export default function ReviewsPage() {
   const params = useParams();
@@ -15,6 +16,7 @@ export default function ReviewsPage() {
   const [reviewText, setReviewText] = useState("");
   const [uploadedImages, setUploadedImages] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isUploadingImages, setIsUploadingImages] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // 임시 가게 정보
@@ -32,29 +34,57 @@ export default function ReviewsPage() {
   };
 
   // 이미지 업로드 핸들러
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (files) {
+      setIsUploadingImages(true);
+      
+      const compressionOptions = {
+        maxSizeMB: 1, // 최대 1MB로 압축
+        maxWidthOrHeight: 1920, // 최대 너비/높이 1920px
+        useWebWorker: true,
+        initialQuality: 0.8, // 초기 품질 80%
+      };
+
       const newImages: string[] = [];
+      const processingPromises: Promise<void>[] = [];
+      
       Array.from(files).forEach((file) => {
         if (uploadedImages.length + newImages.length < 4) {
-          const reader = new FileReader();
-          reader.onload = (e) => {
-            if (e.target?.result) {
-              newImages.push(e.target.result as string);
-              if (
-                newImages.length === files.length ||
-                uploadedImages.length + newImages.length === 4
-              ) {
-                setUploadedImages((prev) =>
-                  [...prev, ...newImages].slice(0, 4)
-                );
-              }
+          const promise = (async () => {
+            try {
+              // 이미지 압축 및 리사이징
+              const compressedFile = await imageCompression(file, compressionOptions);
+              
+              // 압축된 파일을 base64로 변환
+              const reader = new FileReader();
+              reader.onload = (e) => {
+                if (e.target?.result) {
+                  newImages.push(e.target.result as string);
+                  if (
+                    newImages.length === files.length ||
+                    uploadedImages.length + newImages.length === 4
+                  ) {
+                    setUploadedImages((prev) =>
+                      [...prev, ...newImages].slice(0, 4)
+                    );
+                  }
+                }
+              };
+              reader.readAsDataURL(compressedFile);
+            } catch (error) {
+              console.error("이미지 압축 실패:", error);
+              toast.error("이미지 처리 중 오류가 발생했습니다.");
             }
-          };
-          reader.readAsDataURL(file);
+          })();
+          
+          processingPromises.push(promise);
         }
       });
+      
+      // 모든 이미지 처리가 완료될 때까지 대기
+      await Promise.all(processingPromises);
+      setIsUploadingImages(false);
     }
   };
 
@@ -273,15 +303,24 @@ export default function ReviewsPage() {
 
           <button
             onClick={() => fileInputRef.current?.click()}
-            disabled={uploadedImages.length >= 4}
+            disabled={uploadedImages.length >= 4 || isUploadingImages}
             className={`flex items-center justify-center gap-2 font-medium mx-auto ${
-              uploadedImages.length >= 4
+              uploadedImages.length >= 4 || isUploadingImages
                 ? "text-gray-400 cursor-not-allowed"
                 : "text-blue-600 hover:text-blue-700"
             }`}
           >
-            <span className="text-2xl">+</span>
-            <span>사진 올리기 ({uploadedImages.length}/4)</span>
+            {isUploadingImages ? (
+              <>
+                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+                <span>이미지 처리 중...</span>
+              </>
+            ) : (
+              <>
+                <span className="text-2xl">+</span>
+                <span>사진 올리기 ({uploadedImages.length}/4)</span>
+              </>
+            )}
           </button>
           <p className="text-xs text-gray-500 mt-2">
             매장과 관련없는 사진을 올리면 리뷰가 삭제될 수 있어요.
