@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { ChevronLeft, Star, X } from "lucide-react";
 import Image from "next/image";
@@ -17,10 +17,33 @@ export default function ReviewsPage() {
   const [uploadedImages, setUploadedImages] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isUploadingImages, setIsUploadingImages] = useState(false);
+  const [storeName, setStoreName] = useState<string>("");
+  const [isLoadingStore, setIsLoadingStore] = useState(true);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // 임시 가게 정보
-  const storeName = "인형뽑다방";
+  // 매장 정보 가져오기
+  useEffect(() => {
+    const fetchStoreInfo = async () => {
+      try {
+        const response = await fetch(`/api/stores/${storeId}`);
+        if (response.ok) {
+          const data = await response.json();
+          setStoreName(data.name);
+        } else {
+          toast.error("매장 정보를 불러올 수 없습니다.");
+        }
+      } catch (error) {
+        console.error("매장 정보 조회 실패:", error);
+        toast.error("매장 정보를 불러올 수 없습니다.");
+      } finally {
+        setIsLoadingStore(false);
+      }
+    };
+
+    if (storeId) {
+      fetchStoreInfo();
+    }
+  }, [storeId]);
 
   // 태그 선택/해제 핸들러
   const handleTagClick = (tag: string) => {
@@ -105,7 +128,7 @@ export default function ReviewsPage() {
           >
             <ChevronLeft className="w-6 h-6" />
           </button>
-          <h1 className="text-lg font-semibold">{storeName}</h1>
+          <h1 className="text-lg font-semibold">{isLoadingStore ? "로딩중..." : storeName}</h1>
         </div>
       </div>
 
