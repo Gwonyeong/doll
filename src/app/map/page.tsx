@@ -197,7 +197,7 @@ export default function MapPage() {
             initializeMap(location.lat, location.lng);
             fetchNearbyStores(location.lat, location.lng);
           },
-          (error) => {
+          () => {
             // 기본 위치 (서울 중심)로 초기화
             initializeMap(37.5665, 126.978);
             fetchNearbyStores(37.5665, 126.978);
@@ -341,6 +341,7 @@ export default function MapPage() {
       newMarkers.push(userMarker);
     }
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [map, stores, userLocation, selectedStore, fetchReviews]); // markers 제거하여 무한 리렌더링 방지
 
   // 필터링된 매장 목록 (useMemo로 최적화)
