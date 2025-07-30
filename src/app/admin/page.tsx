@@ -11,6 +11,9 @@ interface GameBusiness {
   소재지전체주소: string | null;
   최종수정시점: string | null;
   총게임기수: string | null;
+  _count?: {
+    reviews: number;
+  };
 }
 
 interface ApiResponse {
@@ -57,6 +60,15 @@ export default function AdminPage() {
 
   useEffect(() => {
     const handleAuthentication = () => {
+      // 쿠키에서 인증 정보 확인
+      const cookies = document.cookie.split(';');
+      const authCookie = cookies.find(cookie => cookie.trim().startsWith('admin_auth='));
+      
+      if (authCookie && authCookie.includes('authenticated')) {
+        setIsAuthenticated(true);
+        return;
+      }
+
       const password = prompt("관리자 비밀번호를 입력하세요:");
 
       // 여기에 원하는 비밀번호를 설정하세요
@@ -64,6 +76,10 @@ export default function AdminPage() {
 
       if (password === ADMIN_PASSWORD) {
         setIsAuthenticated(true);
+        // 30일 동안 유효한 쿠키 설정
+        const expiryDate = new Date();
+        expiryDate.setDate(expiryDate.getDate() + 30);
+        document.cookie = `admin_auth=authenticated; expires=${expiryDate.toUTCString()}; path=/`;
       } else {
         alert("비밀번호가 올바르지 않습니다. 접근이 거부되었습니다.");
         router.push("/");
@@ -157,6 +173,8 @@ export default function AdminPage() {
             <button
               onClick={() => {
                 setIsAuthenticated(false);
+                // 쿠키 삭제
+                document.cookie = "admin_auth=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
                 router.push("/");
               }}
               className="px-4 py-2 bg-gray-900 hover:bg-gray-800 text-white rounded-lg transition-colors border border-gray-800"
@@ -444,16 +462,25 @@ export default function AdminPage() {
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         총게임기수
                       </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        후기
+                      </th>
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
                     {businesses.map((business) => (
-                      <tr key={business.id} className="hover:bg-gray-50">
+                      <tr 
+                        key={business.id} 
+                        className="hover:bg-gray-50 cursor-pointer"
+                        onClick={() => router.push(`/admin/stores/${business.id}`)}
+                      >
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                           {business.id}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                          {business.사업장명 || "-"}
+                          <span className="text-blue-600 hover:text-blue-800 font-medium">
+                            {business.사업장명 || "-"}
+                          </span>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm">
                           <span
@@ -477,6 +504,11 @@ export default function AdminPage() {
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                           {business.총게임기수 || "-"}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm">
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                            {business._count?.reviews || 0}개
+                          </span>
                         </td>
                       </tr>
                     ))}

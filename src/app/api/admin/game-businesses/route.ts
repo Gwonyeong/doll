@@ -11,6 +11,9 @@ interface GameBusinessData {
   소재지전체주소: string | null;
   최종수정시점: string | null;
   총게임기수: string | null;
+  _count?: {
+    reviews: number;
+  };
 }
 
 export async function GET(request: NextRequest) {
@@ -110,6 +113,11 @@ export async function GET(request: NextRequest) {
           소재지전체주소: true,
           최종수정시점: true,
           총게임기수: true,
+          _count: {
+            select: {
+              reviews: true,
+            },
+          },
         },
         orderBy: {
           id: "desc",
@@ -153,6 +161,11 @@ export async function GET(request: NextRequest) {
             소재지전체주소: true,
             최종수정시점: true,
             총게임기수: true,
+            _count: {
+              select: {
+                reviews: true,
+              },
+            },
           },
           skip: skip,
           take: limit,
