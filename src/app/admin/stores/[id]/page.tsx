@@ -1,7 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
+import Image from "next/image";
+import { X } from "lucide-react";
+import imageCompression from "browser-image-compression";
 
 interface GameBusiness {
   id: number;
@@ -38,19 +41,42 @@ export default function AdminStoreDetailPage() {
   // 새 후기 추가 모달 상태
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingReview, setEditingReview] = useState<Review | null>(null);
+  const [uploadedImages, setUploadedImages] = useState<string[]>([]);
+  const [isUploadingImages, setIsUploadingImages] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // 새 후기 폼 데이터
   const [newReview, setNewReview] = useState({
     rating: 5,
     content: "",
     tags: [] as string[],
-    userName: "익명",
   });
 
-  const availableTags = [
-    "깨끗함", "친절함", "다양한기계", "좋은위치", "주차편리", 
-    "저렴함", "분위기좋음", "접근성좋음", "시설좋음", "관리잘됨"
-  ];
+  const availableTags = {
+    "기기/상품": [
+      "기기 상태가 좋아요",
+      "상품이 다양해요",
+      "신상품이 자주 들어와요",
+      "고장 없이 잘 작동해요",
+      "인기 캐릭터가 많아요",
+    ],
+    "가격/혜택": [
+      "가격이 저렴해요",
+      "이벤트/서비스가 좋아요",
+      "경품 교환이 쉬워요",
+    ],
+    "분위기/환경": [
+      "매장이 깨끗해요",
+      "사진 찍기 좋아요",
+      "분위기가 좋아요",
+      "가족끼리 가기 좋아요",
+    ],
+    "접근성": [
+      "위치가 좋아요", 
+      "주차하기 편해요", 
+      "찾기 쉬워요"
+    ],
+  };
 
   // 매장 정보 가져오기
   useEffect(() => {
@@ -79,10 +105,10 @@ export default function AdminStoreDetailPage() {
   const fetchReviews = async () => {
     setReviewsLoading(true);
     try {
-      const response = await fetch(`/api/admin/reviews?storeId=${storeId}`);
+      const response = await fetch(`/api/reviews?storeId=${storeId}`);
       if (response.ok) {
-        const data = await response.json();
-        setReviews(data);
+        const result = await response.json();
+        setReviews(result.data.reviews);
       } else {
         console.error("후기를 불러올 수 없습니다.");
       }
@@ -99,27 +125,89 @@ export default function AdminStoreDetailPage() {
     }
   }, [storeId]);
 
+  // 이미지 업로드 핸들러
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (files) {
+      setIsUploadingImages(true);
+      
+      const compressionOptions = {
+        maxSizeMB: 1,
+        maxWidthOrHeight: 1920,
+        useWebWorker: true,
+        initialQuality: 0.8,
+      };
+
+      const newImages: string[] = [];
+      const processingPromises: Promise<void>[] = [];
+      
+      Array.from(files).forEach((file) => {
+        if (uploadedImages.length + newImages.length < 4) {
+          const promise = (async () => {
+            try {
+              const compressedFile = await imageCompression(file, compressionOptions);
+              
+              const reader = new FileReader();
+              reader.onload = (e) => {
+                if (e.target?.result) {
+                  newImages.push(e.target.result as string);
+                  if (
+                    newImages.length === files.length ||
+                    uploadedImages.length + newImages.length === 4
+                  ) {
+                    setUploadedImages((prev) =>
+                      [...prev, ...newImages].slice(0, 4)
+                    );
+                  }
+                }
+              };
+              reader.readAsDataURL(compressedFile);
+            } catch (error) {
+              console.error("이미지 압축 실패:", error);
+              alert("이미지 처리 중 오류가 발생했습니다.");
+            }
+          })();
+          
+          processingPromises.push(promise);
+        }
+      });
+      
+      await Promise.all(processingPromises);
+      setIsUploadingImages(false);
+    }
+  };
+
+  // 이미지 삭제 핸들러
+  const handleImageRemove = (index: number) => {
+    setUploadedImages((prev) => prev.filter((_, i) => i !== index));
+  };
+
   // 후기 추가
   const handleAddReview = async () => {
     try {
-      const response = await fetch("/api/admin/reviews", {
+      const response = await fetch("/api/reviews", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          ...newReview,
           storeId: parseInt(storeId),
+          rating: newReview.rating,
+          content: newReview.content,
+          tags: newReview.tags,
+          images: uploadedImages,
         }),
       });
 
       if (response.ok) {
         setShowAddModal(false);
-        setNewReview({ rating: 5, content: "", tags: [], userName: "익명" });
+        setNewReview({ rating: 5, content: "", tags: [] });
+        setUploadedImages([]);
         fetchReviews();
         alert("후기가 추가되었습니다!");
       } else {
-        alert("후기 추가에 실패했습니다.");
+        const error = await response.json();
+        alert(error.error || "후기 추가에 실패했습니다.");
       }
     } catch (error) {
       console.error("후기 추가 에러:", error);
@@ -132,7 +220,7 @@ export default function AdminStoreDetailPage() {
     if (!editingReview) return;
 
     try {
-      const response = await fetch(`/api/admin/reviews/${editingReview.id}`, {
+      const response = await fetch(`/api/reviews/${editingReview.id}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -141,7 +229,6 @@ export default function AdminStoreDetailPage() {
           rating: editingReview.rating,
           content: editingReview.content,
           tags: editingReview.tags,
-          userName: editingReview.userName,
         }),
       });
 
@@ -163,7 +250,7 @@ export default function AdminStoreDetailPage() {
     if (!confirm("정말로 이 후기를 삭제하시겠습니까?")) return;
 
     try {
-      const response = await fetch(`/api/admin/reviews/${reviewId}`, {
+      const response = await fetch(`/api/reviews/${reviewId}`, {
         method: "DELETE",
       });
 
@@ -228,7 +315,7 @@ export default function AdminStoreDetailPage() {
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <header className="bg-white border-b border-gray-200 shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-6">
             <div className="flex items-center space-x-3">
               <button
@@ -246,7 +333,7 @@ export default function AdminStoreDetailPage() {
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main className="px-4 sm:px-6 lg:px-8 py-8">
         {/* 매장 정보 */}
         <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-6 mb-8">
           <h2 className="text-xl font-semibold text-gray-900 mb-4">매장 정보</h2>
@@ -383,18 +470,6 @@ export default function AdminStoreDetailPage() {
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  작성자명
-                </label>
-                <input
-                  type="text"
-                  value={newReview.userName}
-                  onChange={(e) => setNewReview(prev => ({ ...prev, userName: e.target.value }))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-gray-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
                   별점
                 </label>
                 <div className="flex space-x-1">
@@ -427,23 +502,89 @@ export default function AdminStoreDetailPage() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  태그 선택
+                  태그 선택 (최대 5개)
                 </label>
-                <div className="flex flex-wrap gap-2">
-                  {availableTags.map((tag) => (
-                    <button
-                      key={tag}
-                      onClick={() => toggleTag(tag, true)}
-                      className={`px-3 py-1 text-sm rounded-full transition-colors ${
-                        newReview.tags.includes(tag)
-                          ? "bg-gray-900 text-white"
-                          : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                      }`}
-                    >
-                      #{tag}
-                    </button>
-                  ))}
-                </div>
+                {Object.entries(availableTags).map(([category, tags]) => (
+                  <div key={category} className="mb-4">
+                    <h4 className="text-xs font-semibold text-gray-600 mb-2">{category}</h4>
+                    <div className="flex flex-wrap gap-2">
+                      {tags.map((tag) => (
+                        <button
+                          key={tag}
+                          onClick={() => toggleTag(tag, true)}
+                          className={`px-3 py-1.5 text-xs rounded-full transition-colors ${
+                            newReview.tags.includes(tag)
+                              ? "bg-blue-500 text-white"
+                              : "bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-300"
+                          }`}
+                        >
+                          {tag}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+                <p className="text-xs text-gray-500 mt-2">
+                  선택한 태그: {newReview.tags.length}/5
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  사진 추가 (최대 4장)
+                </label>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  onChange={handleImageUpload}
+                  className="hidden"
+                />
+
+                {/* 업로드된 이미지들 */}
+                {uploadedImages.length > 0 && (
+                  <div className="grid grid-cols-4 gap-2 mb-4">
+                    {uploadedImages.map((image, index) => (
+                      <div key={index} className="relative aspect-square">
+                        <Image
+                          src={image}
+                          alt={`업로드된 이미지 ${index + 1}`}
+                          fill
+                          className="object-cover rounded-lg"
+                        />
+                        <button
+                          onClick={() => handleImageRemove(index)}
+                          className="absolute top-1 right-1 bg-black bg-opacity-50 rounded-full p-1 hover:bg-opacity-70 transition-opacity"
+                        >
+                          <X size={16} className="text-white" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={uploadedImages.length >= 4 || isUploadingImages}
+                  className={`flex items-center justify-center gap-2 font-medium mx-auto ${
+                    uploadedImages.length >= 4 || isUploadingImages
+                      ? "text-gray-400 cursor-not-allowed"
+                      : "text-blue-600 hover:text-blue-700"
+                  }`}
+                >
+                  {isUploadingImages ? (
+                    <>
+                      <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+                      <span>이미지 처리 중...</span>
+                    </>
+                  ) : (
+                    <>
+                      <span className="text-2xl">+</span>
+                      <span>사진 올리기 ({uploadedImages.length}/4)</span>
+                    </>
+                  )}
+                </button>
               </div>
             </div>
 
@@ -451,7 +592,8 @@ export default function AdminStoreDetailPage() {
               <button
                 onClick={() => {
                   setShowAddModal(false);
-                  setNewReview({ rating: 5, content: "", tags: [], userName: "익명" });
+                  setNewReview({ rating: 5, content: "", tags: [] });
+                  setUploadedImages([]);
                 }}
                 className="px-4 py-2 text-gray-700 bg-gray-200 hover:bg-gray-300 rounded-lg transition-colors"
               >
@@ -459,7 +601,7 @@ export default function AdminStoreDetailPage() {
               </button>
               <button
                 onClick={handleAddReview}
-                disabled={!newReview.content.trim()}
+                disabled={!newReview.content.trim() || newReview.content.length < 10 || newReview.tags.length === 0}
                 className="px-4 py-2 bg-gray-900 hover:bg-gray-800 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 추가
@@ -476,18 +618,6 @@ export default function AdminStoreDetailPage() {
             <h3 className="text-lg font-semibold text-gray-900 mb-4">후기 수정</h3>
             
             <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  작성자명
-                </label>
-                <input
-                  type="text"
-                  value={editingReview.userName}
-                  onChange={(e) => setEditingReview(prev => prev ? { ...prev, userName: e.target.value } : null)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-gray-500"
-                />
-              </div>
-
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   별점
@@ -521,23 +651,31 @@ export default function AdminStoreDetailPage() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  태그 선택
+                  태그 선택 (최대 5개)
                 </label>
-                <div className="flex flex-wrap gap-2">
-                  {availableTags.map((tag) => (
-                    <button
-                      key={tag}
-                      onClick={() => toggleTag(tag, false)}
-                      className={`px-3 py-1 text-sm rounded-full transition-colors ${
-                        editingReview.tags.includes(tag)
-                          ? "bg-gray-900 text-white"
-                          : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                      }`}
-                    >
-                      #{tag}
-                    </button>
-                  ))}
-                </div>
+                {Object.entries(availableTags).map(([category, tags]) => (
+                  <div key={category} className="mb-4">
+                    <h4 className="text-xs font-semibold text-gray-600 mb-2">{category}</h4>
+                    <div className="flex flex-wrap gap-2">
+                      {tags.map((tag) => (
+                        <button
+                          key={tag}
+                          onClick={() => toggleTag(tag, false)}
+                          className={`px-3 py-1.5 text-xs rounded-full transition-colors ${
+                            editingReview.tags.includes(tag)
+                              ? "bg-blue-500 text-white"
+                              : "bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-300"
+                          }`}
+                        >
+                          {tag}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+                <p className="text-xs text-gray-500 mt-2">
+                  선택한 태그: {editingReview.tags.length}/5
+                </p>
               </div>
             </div>
 
@@ -550,7 +688,7 @@ export default function AdminStoreDetailPage() {
               </button>
               <button
                 onClick={handleEditReview}
-                disabled={!editingReview.content.trim()}
+                disabled={!editingReview.content.trim() || editingReview.content.length < 10 || editingReview.tags.length === 0}
                 className="px-4 py-2 bg-gray-900 hover:bg-gray-800 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 수정

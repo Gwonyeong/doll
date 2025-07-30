@@ -47,7 +47,7 @@ export async function PUT(
         rating,
         content,
         tags: tags || [],
-        userName: userName || "익명",
+        ...(userName && { userName }),
         updatedAt: new Date(),
       },
     });
