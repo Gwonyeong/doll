@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Image from "next/image";
 import { X } from "lucide-react";
@@ -102,7 +102,7 @@ export default function AdminStoreDetailPage() {
   }, [storeId]);
 
   // 후기 목록 가져오기
-  const fetchReviews = async () => {
+  const fetchReviews = useCallback(async () => {
     setReviewsLoading(true);
     try {
       const response = await fetch(`/api/reviews?storeId=${storeId}`);
@@ -117,13 +117,13 @@ export default function AdminStoreDetailPage() {
     } finally {
       setReviewsLoading(false);
     }
-  };
+  }, [storeId]);
 
   useEffect(() => {
     if (storeId) {
       fetchReviews();
     }
-  }, [storeId]);
+  }, [storeId, fetchReviews]);
 
   // 이미지 업로드 핸들러
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {

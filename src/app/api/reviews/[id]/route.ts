@@ -6,9 +6,10 @@ const prisma = new PrismaClient();
 // 후기 수정
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
+    const params = await context.params;
     const reviewId = params.id;
     const body = await request.json();
     const { rating, content, tags, userName } = body;
@@ -65,9 +66,10 @@ export async function PUT(
 // 후기 삭제
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
+    const params = await context.params;
     const reviewId = params.id;
 
     // 후기 존재 여부 확인
