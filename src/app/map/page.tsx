@@ -642,7 +642,7 @@ export default function MapPage() {
 
           {/* 전체 화면일 때 매장 이미지 - 첫 번째 리뷰에 이미지가 없을 때만 표시 */}
 
-          <div className=" h-full flex flex-col">
+          <div className={`h-full flex flex-col ${isBottomSheetExpanded ? "" : "overflow-hidden"}`}>
             <div
               className={`flex justify-between items-start mb-4 p-6 ${
                 isBottomSheetExpanded ? "hidden" : ""
@@ -665,9 +665,12 @@ export default function MapPage() {
 
             {/* 리뷰 섹션 */}
             <div
-              className={` border-gray-200   ${
-                isBottomSheetExpanded ? "flex-1 overflow-y-auto pb-42" : "pb-20"
+              className={`border-gray-200 ${
+                isBottomSheetExpanded ? "flex-1 overflow-y-auto pb-24" : "overflow-y-auto"
               }`}
+              style={{
+                maxHeight: isBottomSheetExpanded ? "calc(100vh - 180px)" : "200px"
+              }}
             >
               {reviewsLoading ? (
                 <div className="text-center py-4">
@@ -838,7 +841,7 @@ export default function MapPage() {
               ) : (
                 // 기본 바텀시트일 때 리뷰 레이아웃
                 <div
-                  className="flex gap-4  overflow-x-auto pb-2 mx-2 px-2 scrollbar-hide"
+                  className="flex gap-4 overflow-x-auto pb-2 mx-2 px-2 scrollbar-hide"
                   style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
                 >
                   {reviews.map((review) => (
