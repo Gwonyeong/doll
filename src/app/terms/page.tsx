@@ -241,9 +241,6 @@ export default function TermsPage() {
                   <p>
                     <strong>사업자등록번호:</strong> 755-03-03767
                   </p>
-                  <p>
-                    <strong>주소:</strong> 서울특별시 송파구 올림픽로 435
-                  </p>
                 </div>
               </div>
             </div>

@@ -6,6 +6,7 @@ import { MapPin, X, Star } from "lucide-react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import StoreInfo from "@/components/StoreInfo";
+import { getTossBridge, isTossWebView, useSafeAreaInsets } from "@/lib/toss-bridge";
 
 // 네이버 지도 타입 정의
 declare global {
@@ -65,6 +66,10 @@ interface Review {
 export default function MapPage() {
   const mapRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
+  const tossBridge = getTossBridge();
+  const safeAreaInsets = useSafeAreaInsets();
+  const isWebView = isTossWebView();
+
   const [map, setMap] = useState<any>(null);
   const [stores, setStores] = useState<GameStore[]>([]);
   const [selectedStore, setSelectedStore] = useState<GameStore | null>(null);
@@ -185,25 +190,52 @@ export default function MapPage() {
     }
 
     // 먼저 사용자 위치를 가져옴
-    const initializeWithUserLocation = () => {
-      if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(
-          (position) => {
-            const location = {
-              lat: position.coords.latitude,
-              lng: position.coords.longitude,
-            };
+    const initializeWithUserLocation = async () => {
+      try {
+        // 토스 웹뷰 환경에서는 토스 브릿지 사용
+        if (isWebView) {
+          const hasPermission = await tossBridge.requestPermission('location');
+          if (hasPermission) {
+            const location = await tossBridge.getLocation();
             setUserLocation(location);
             initializeMap(location.lat, location.lng);
             fetchNearbyStores(location.lat, location.lng);
-          },
-          () => {
+
+            // 토스 이벤트 로깅
+            tossBridge.logEvent('map_location_granted', { lat: location.lat, lng: location.lng });
+          } else {
             // 기본 위치 (서울 중심)로 초기화
             initializeMap(37.5665, 126.978);
             fetchNearbyStores(37.5665, 126.978);
+            tossBridge.logEvent('map_location_denied');
           }
-        );
-      } else {
+        } else {
+          // 일반 웹 환경에서는 브라우저 API 사용
+          if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+              (position) => {
+                const location = {
+                  lat: position.coords.latitude,
+                  lng: position.coords.longitude,
+                };
+                setUserLocation(location);
+                initializeMap(location.lat, location.lng);
+                fetchNearbyStores(location.lat, location.lng);
+              },
+              () => {
+                // 기본 위치 (서울 중심)로 초기화
+                initializeMap(37.5665, 126.978);
+                fetchNearbyStores(37.5665, 126.978);
+              }
+            );
+          } else {
+            // 기본 위치로 초기화
+            initializeMap(37.5665, 126.978);
+            fetchNearbyStores(37.5665, 126.978);
+          }
+        }
+      } catch (error) {
+        console.error('위치 정보 가져오기 실패:', error);
         // 기본 위치로 초기화
         initializeMap(37.5665, 126.978);
         fetchNearbyStores(37.5665, 126.978);
@@ -249,7 +281,7 @@ export default function MapPage() {
         console.error("Error creating map:", error);
       }
     }
-  }, [fetchNearbyStores]);
+  }, [fetchNearbyStores, isWebView, tossBridge]);
 
   // 매장 마커 생성
   useEffect(() => {
@@ -956,8 +988,11 @@ export default function MapPage() {
         initial={{ scale: 0 }}
         animate={{ scale: 1 }}
         transition={{ delay: 0.5, type: "spring", stiffness: 200 }}
-        className="absolute top-20 right-4 w-12 h-12 bg-white rounded-lg flex items-center justify-center hover:shadow-2xl transition-shadow z-10 border border-gray-200"
-        style={{ boxShadow: "0px 0px 4px 2px #0000001A" }}
+        className="absolute right-4 w-12 h-12 bg-white rounded-lg flex items-center justify-center hover:shadow-2xl transition-shadow z-10 border border-gray-200"
+        style={{
+          boxShadow: "0px 0px 4px 2px #0000001A",
+          top: `calc(80px + ${safeAreaInsets.top}px)`
+        }}
         onClick={getUserLocation}
       >
         <svg
@@ -989,7 +1024,7 @@ export default function MapPage() {
       </motion.button>
 
       {/* 지도 확대/축소 버튼 */}
-      <div className="absolute top-36 right-4 z-10">
+      <div className="absolute right-4 z-10" style={{ top: `calc(144px + ${safeAreaInsets.top}px)` }}>
         {/* 확대 버튼 */}
         <motion.button
           initial={{ scale: 0 }}

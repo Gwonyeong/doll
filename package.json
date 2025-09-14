@@ -12,9 +12,13 @@
     "db:push": "prisma db push",
     "db:migrate": "prisma migrate dev",
     "db:studio": "prisma studio",
-    "import-csv": "npx tsx scripts/import-csv.ts"
+    "import-csv": "npx tsx scripts/import-csv.ts",
+    "ait:build": "next build && npm run ait:bundle",
+    "ait:bundle": "mkdir -p dist && cp -r .next/static dist/ && cp -r public dist/ && cp ait.config.json dist/ && cp manifest.json dist/",
+    "ait:serve": "next build && next start"
   },
   "dependencies": {
+    "@apps-in-toss/web-framework": "^1.1.0",
     "@prisma/client": "^6.10.1",
     "@supabase/supabase-js": "^2.50.2",
     "browser-image-compression": "^2.0.2",
