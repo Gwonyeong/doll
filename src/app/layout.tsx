@@ -23,10 +23,6 @@ export default function RootLayout({
   return (
     <html lang="ko">
       <head>
-        <Script
-          src={`https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=${process.env.NEXT_PUBLIC_NAVER_MAP_CLIENT_ID}`}
-          strategy="beforeInteractive"
-        />
         <title>DollCatcher - 인형뽑기 매장 찾기</title>
         <meta
           name="description"
@@ -47,6 +43,22 @@ export default function RootLayout({
         <meta name="toss:app-version" content="1.0.0" />
       </head>
       <body className={`${pretendard.variable} antialiased bg-gray-50`}>
+        <Script
+          src={`https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=${process.env.NEXT_PUBLIC_NAVER_MAP_CLIENT_ID}`}
+          strategy="afterInteractive"
+          onLoad={() => {
+            console.log('Naver Maps script loaded successfully');
+          }}
+          onError={(error) => {
+            console.error('Failed to load Naver Maps script:', error);
+            // Android WebView에서 실패 시 재시도
+            if (navigator.userAgent.includes('Android')) {
+              setTimeout(() => {
+                window.location.reload();
+              }, 1000);
+            }
+          }}
+        />
         <TossWebViewProvider>
           <div className={`mx-auto min-h-screen bg-white ${!isAdminPage ? "max-w-[600px] shadow-lg" : ""}`}>
             {children}
