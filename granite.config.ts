@@ -9,13 +9,13 @@ export default defineConfig({
     bridgeColorMode: "basic",
   },
   web: {
-    host: "localhost",
-    port: 5173,
+    host: "dollbbobgosu.vercel.app",
+    port: 443,
     commands: {
       dev: "next dev",
       build: "prisma generate && next build",
     },
   },
   permissions: [],
-  outdir: "dist",
+  outdir: ".next/server/app",
 });

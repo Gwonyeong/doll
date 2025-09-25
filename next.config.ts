@@ -6,37 +6,37 @@ const nextConfig: NextConfig = {
 
   // 이미지 최적화
   images: {
-    domains: ['localhost', 'supabase.co'],
-    formats: ['image/avif', 'image/webp'],
+    domains: ["localhost", "supabase.co"],
+    formats: ["image/avif", "image/webp"],
     minimumCacheTTL: 60,
   },
 
   // 성능 최적화
   compiler: {
-    removeConsole: process.env.NODE_ENV === 'production',
+    removeConsole: process.env.NODE_ENV === "production",
   },
 
   // PWA 지원 (토스 웹뷰에서도 오프라인 지원)
   headers: async () => [
     {
-      source: '/:path*',
+      source: "/:path*",
       headers: [
         {
-          key: 'X-Frame-Options',
-          value: 'SAMEORIGIN',
+          key: "X-Frame-Options",
+          value: "SAMEORIGIN",
         },
         {
-          key: 'X-Content-Type-Options',
-          value: 'nosniff',
+          key: "X-Content-Type-Options",
+          value: "nosniff",
         },
         {
-          key: 'X-XSS-Protection',
-          value: '1; mode=block',
+          key: "X-XSS-Protection",
+          value: "1; mode=block",
         },
         // 토스 웹뷰 캐싱 최적화
         {
-          key: 'Cache-Control',
-          value: 'public, max-age=3600, must-revalidate',
+          key: "Cache-Control",
+          value: "public, max-age=3600, must-revalidate",
         },
       ],
     },
@@ -47,20 +47,20 @@ const nextConfig: NextConfig = {
     if (!isServer) {
       // 번들 사이즈 최적화
       config.optimization.splitChunks = {
-        chunks: 'all',
+        chunks: "all",
         cacheGroups: {
           default: false,
           vendors: false,
           vendor: {
-            name: 'vendor',
-            chunks: 'all',
+            name: "vendor",
+            chunks: "all",
             test: /node_modules/,
             priority: 20,
           },
           common: {
-            name: 'common',
+            name: "common",
             minChunks: 2,
-            chunks: 'async',
+            chunks: "async",
             priority: 10,
             reuseExistingChunk: true,
             enforce: true,
@@ -74,6 +74,22 @@ const nextConfig: NextConfig = {
   // 실험적 기능
   experimental: {
     scrollRestoration: true,
+  },
+
+  async rewrites() {
+    return [
+      // Toss Mini앱 도메인에서 접근 허용
+      {
+        source: "/:path*",
+        has: [
+          {
+            type: "host",
+            value: "dollpickmap.private-apps.tossmini.com",
+          },
+        ],
+        destination: "/:path*",
+      },
+    ];
   },
 };
 
