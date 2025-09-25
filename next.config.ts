@@ -21,9 +21,27 @@ const nextConfig: NextConfig = {
     {
       source: "/:path*",
       headers: [
+        // CORS 헤더 추가
+        {
+          key: "Access-Control-Allow-Origin",
+          value: "*",
+        },
+        {
+          key: "Access-Control-Allow-Methods",
+          value: "GET, POST, PUT, DELETE, OPTIONS, PATCH",
+        },
+        {
+          key: "Access-Control-Allow-Headers",
+          value: "*",
+        },
+        {
+          key: "Access-Control-Allow-Credentials",
+          value: "true",
+        },
+        // 보안 헤더 제거 또는 완화 (토스 앱인토스 테스트용)
         {
           key: "X-Frame-Options",
-          value: "SAMEORIGIN",
+          value: "ALLOWALL",
         },
         {
           key: "X-Content-Type-Options",
