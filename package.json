@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "granite dev",
-    "build": "granite build",
+    "build": "next build",
     "start": "next start",
     "lint": "next lint",
     "postinstall": "prisma generate",
@@ -13,7 +13,7 @@
     "db:migrate": "prisma migrate dev",
     "db:studio": "prisma studio",
     "import-csv": "npx tsx scripts/import-csv.ts",
-    "ait:build": "next build && npm run ait:bundle",
+    "granite:build": "granite build",
     "ait:bundle": "mkdir -p dist && cp -r .next/static dist/ && cp -r public dist/ && cp ait.config.json dist/ && cp manifest.json dist/",
     "ait:serve": "next build && next start",
     "deploy": "ait deploy"
