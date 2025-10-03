@@ -15,20 +15,20 @@
     "@jridgewell/gen-mapping" "^0.3.5"
     "@jridgewell/trace-mapping" "^0.3.24"
 
-"@apps-in-toss/analytics@1.1.3":
-  version "1.1.3"
-  resolved "https://registry.yarnpkg.com/@apps-in-toss/analytics/-/analytics-1.1.3.tgz#ce0b6e702e2eb92cf6ba0e8aa2774cb18e034d61"
-  integrity sha512-ls4cI95+qrhUil0RVmoCBos9vxnz2PO17PjZM7iZ3o8c1nsuEoe865EJn5Tz+BHAZ1HyHFaBeORIYQwBJ5ot1Q==
+"@apps-in-toss/analytics@1.2.0":
+  version "1.2.0"
+  resolved "https://registry.yarnpkg.com/@apps-in-toss/analytics/-/analytics-1.2.0.tgz#7aef89227c6ace8b037a46476eb9e92a07369a26"
+  integrity sha512-viE02Z+e6NNQg4Ry/gDgX9BVBU7Kg4zN1X7O0QCwDwDI3qb4bz8Jab8H8CcHaKbwEMuZVnHSYiIX73ri/+CfXw==
 
-"@apps-in-toss/bridge-core@1.1.3":
-  version "1.1.3"
-  resolved "https://registry.yarnpkg.com/@apps-in-toss/bridge-core/-/bridge-core-1.1.3.tgz#40f8f7cc4fd7deda291f1a312fc1fda3fb4db270"
-  integrity sha512-ebH3Rtg3oeRAnIsckVsLUZUj3WPi2OvGivHyM3a3bC+1+cUpLM4LSfRCUmCfuU+eOvD3sachBDCaKu4+JN96Sw==
+"@apps-in-toss/bridge-core@1.2.0":
+  version "1.2.0"
+  resolved "https://registry.yarnpkg.com/@apps-in-toss/bridge-core/-/bridge-core-1.2.0.tgz#49653e960e99b417c1b627190c277edc93abec44"
+  integrity sha512-C/1eZBEeBvvCkyc8pv7rHyZXhHP2CqICMR+Y73LXoPOzQeVGKPndkn2yKXU5/UWGuhc0I9RGBaCWOI9I6EP4iw==
 
-"@apps-in-toss/cli@1.1.3":
-  version "1.1.3"
-  resolved "https://registry.yarnpkg.com/@apps-in-toss/cli/-/cli-1.1.3.tgz#d59099147bc44e72a8ef3cd689add2ddff4a0311"
-  integrity sha512-mKmT5rMvDJl9BuuTf1wQHUa3TQ+TgDfVYrx92ar9lh75qA7mzMLSzPY+I7VGi2A2NNiUfCZagsmxvPnj9IZ0BQ==
+"@apps-in-toss/cli@1.2.0":
+  version "1.2.0"
+  resolved "https://registry.yarnpkg.com/@apps-in-toss/cli/-/cli-1.2.0.tgz#e04a6671f333c806405f784ef84696f8b57d18d7"
+  integrity sha512-5GWr6mm3rUaN4uokmeY8uwJsVXrhyqM9emxreSYsCWLqdEFSTsTtveT7klRxKc5S/eE9m9n3pDvbav9elfMeVw==
   dependencies:
     "@clack/prompts" "^0.10.0"
     "@granite-js/utils" "0.1.22"
@@ -40,30 +40,30 @@
     source-map "^0.8.0-beta.0"
     unzipper "^0.12.3"
 
-"@apps-in-toss/framework@1.1.3":
-  version "1.1.3"
-  resolved "https://registry.yarnpkg.com/@apps-in-toss/framework/-/framework-1.1.3.tgz#e20cc072e03398bd6d9b2cae1c20c1bf8802ceb3"
-  integrity sha512-bvc7wBMU0eNUlI6+hZIl2Zp/ALplY+GWZvbWqNi0EMrsHh0Li3IZ7BsnN/LBstK3O1TabAkGu1zkhT6/Oe2rZQ==
+"@apps-in-toss/framework@1.2.0":
+  version "1.2.0"
+  resolved "https://registry.yarnpkg.com/@apps-in-toss/framework/-/framework-1.2.0.tgz#b0b58d705e961f75e6a62375a2afe361490fd55b"
+  integrity sha512-vXreRddf/xP6hYTMfbpCsky6wP8rer1M8nlgV75pOj9e97efBko2P1hcTPivKK8JHxzQ5AeFeiMBz0CXOWeXwg==
   dependencies:
-    "@apps-in-toss/analytics" "1.1.3"
-    "@apps-in-toss/cli" "1.1.3"
-    "@apps-in-toss/native-modules" "1.1.3"
-    "@apps-in-toss/plugins" "1.1.3"
-    "@apps-in-toss/types" "1.1.3"
+    "@apps-in-toss/analytics" "1.2.0"
+    "@apps-in-toss/cli" "1.2.0"
+    "@apps-in-toss/native-modules" "1.2.0"
+    "@apps-in-toss/plugins" "1.2.0"
+    "@apps-in-toss/types" "1.2.0"
     es-hangul "^2.3.2"
 
-"@apps-in-toss/native-modules@1.1.3":
-  version "1.1.3"
-  resolved "https://registry.yarnpkg.com/@apps-in-toss/native-modules/-/native-modules-1.1.3.tgz#3b1897214d2b24c2ac34031666c3048f473e5d10"
-  integrity sha512-yWs2rdcZNfCNCL28iovkA/VNf+nBuSrCusl59dRzJg9+cVJaDJnWXTww5jWixi4B4DyCAKBYfHMoXHTmSmmIFg==
+"@apps-in-toss/native-modules@1.2.0":
+  version "1.2.0"
+  resolved "https://registry.yarnpkg.com/@apps-in-toss/native-modules/-/native-modules-1.2.0.tgz#8b3310e24a0a62feb4d7c2ddd7a73b554a95a408"
+  integrity sha512-d84LUkippOXY9oc+Ae0EaKAVch3g3OrSOb7HmFBb+I/IL8XlZm/XBVwgSnILwefG7oFOakkE3ubTU2w97Zgq9g==
   dependencies:
-    "@apps-in-toss/types" "^1.1.3"
+    "@apps-in-toss/types" "^1.2.0"
     es-toolkit "^1.39.3"
 
-"@apps-in-toss/plugins@1.1.3":
-  version "1.1.3"
-  resolved "https://registry.yarnpkg.com/@apps-in-toss/plugins/-/plugins-1.1.3.tgz#b07496f265045aaec75b082a2c2e6577182db165"
-  integrity sha512-niQ3tIjLUvL2yamz9GIIJgyv2+pZNJWKBOwD0mWjMB8heqwaLfBTFMT6NjSJ5sd9U2vYTpoL76Nk1ZbxBNj+4A==
+"@apps-in-toss/plugins@1.2.0":
+  version "1.2.0"
+  resolved "https://registry.yarnpkg.com/@apps-in-toss/plugins/-/plugins-1.2.0.tgz#63be4ce8dfeddd9a37fcb606ba13cdfff466faed"
+  integrity sha512-DQnMSuTFFR02UXXceyhiGz50elbxP1HlcTOfG4OSG31+wAg0YKvM5GHHMcKRM5LVo7NeYaeLcDZOxduw0+cPmw==
   dependencies:
     "@granite-js/plugin-core" "0.1.22"
     "@granite-js/plugin-micro-frontend" "0.1.22"
@@ -76,34 +76,34 @@
     picocolors "^1.1.1"
     uuidv7 "^1.0.2"
 
-"@apps-in-toss/types@1.1.3", "@apps-in-toss/types@^1.1.3":
-  version "1.1.3"
-  resolved "https://registry.yarnpkg.com/@apps-in-toss/types/-/types-1.1.3.tgz#dce69c8189be309f9965d0071433e455e0f0f386"
-  integrity sha512-7j2dfjWaj3cYnmRUpu00s4aTsDAzIPEgyAgJNbnbNhgkr63rCkyCQau5d3zQqZpDkuHKARpTRkHn+lNMFqQIwA==
+"@apps-in-toss/types@1.2.0", "@apps-in-toss/types@^1.2.0":
+  version "1.2.0"
+  resolved "https://registry.yarnpkg.com/@apps-in-toss/types/-/types-1.2.0.tgz#453f39465e93196c3d80d63da9b23fc57c44f7ef"
+  integrity sha512-NyUKXzO7LVJhxmCj1EkXobxqCQtFClvWeTOkLFdRUifGQfL4SIvGccVoAva0YNHaLgMOH4rs+Lm0LsYXA2bWMQ==
 
-"@apps-in-toss/web-analytics@1.1.3":
-  version "1.1.3"
-  resolved "https://registry.yarnpkg.com/@apps-in-toss/web-analytics/-/web-analytics-1.1.3.tgz#93f4e3836f38957ae4060d395be3c43aa9a672d6"
-  integrity sha512-WYgj0fjZnojPzbCATwpDQuS1zlnYMM1XURhndqqKx4q9PWUbcNVmY+tLEVj51avOwivmHDmpjmFqiGrXMxo96g==
+"@apps-in-toss/web-analytics@1.2.0":
+  version "1.2.0"
+  resolved "https://registry.yarnpkg.com/@apps-in-toss/web-analytics/-/web-analytics-1.2.0.tgz#a7758c4d6dee4cb92bc4a66600a59122088c450c"
+  integrity sha512-YXwnUfkCkYDcyM4+2BdhpD4HP9CuoYHrtcvE6Bzi/bcZxnjNp0D1K65U5Mqlta0SxHuomnzzVyJ6AoHsTp2c5Q==
 
-"@apps-in-toss/web-bridge@1.1.3":
-  version "1.1.3"
-  resolved "https://registry.yarnpkg.com/@apps-in-toss/web-bridge/-/web-bridge-1.1.3.tgz#b8690509fd12eda644abbf58210a9192d7d9a819"
-  integrity sha512-t3TB0IfHLauvo2UotsH5IfynTBT8Mn7ncjPzO3u1Nrqtt1jz+hLdxa3vLUHTbNrZGrfbxbHj9TD1PHTM3P+gZA==
+"@apps-in-toss/web-bridge@1.2.0":
+  version "1.2.0"
+  resolved "https://registry.yarnpkg.com/@apps-in-toss/web-bridge/-/web-bridge-1.2.0.tgz#4b8d54b90201b270c15682d3eaf1ab6e4eacb5e0"
+  integrity sha512-JvauGEc056P27AX7aKCeXuW9IHuokHuIYXtPtFxSGfnKQ6fkFxIISqtKcUQl1D2jCUtHnfshDtRGaCFQUOmzEg==
   dependencies:
-    "@apps-in-toss/types" "1.1.3"
+    "@apps-in-toss/types" "1.2.0"
 
-"@apps-in-toss/web-framework@^1.1.3":
-  version "1.1.3"
-  resolved "https://registry.yarnpkg.com/@apps-in-toss/web-framework/-/web-framework-1.1.3.tgz#7b804c1a6dc549ba37cfb1724906dc5c517ccced"
-  integrity sha512-/PS9t4GYeDTRNUixXOGPXGYUx/QbSoF1fjJ7/IsdJ8x4VhAPWo7/wFuaZ3sTjAkRNmXqkdS33YzPZNdaq8I9wQ==
+"@apps-in-toss/web-framework@^1.2.0":
+  version "1.2.0"
+  resolved "https://registry.yarnpkg.com/@apps-in-toss/web-framework/-/web-framework-1.2.0.tgz#03285ad113d35183389df32f3b50469971800cd3"
+  integrity sha512-tuYjPynhC/BBSP1EnRkXvbDwWxITHVeibOIs+BajPXE6d7+R+bS1goJluvOFMZxj7JQOCXNb+PsGtr5V60Kptw==
   dependencies:
-    "@apps-in-toss/bridge-core" "1.1.3"
-    "@apps-in-toss/cli" "1.1.3"
-    "@apps-in-toss/framework" "1.1.3"
-    "@apps-in-toss/plugins" "1.1.3"
-    "@apps-in-toss/web-analytics" "1.1.3"
-    "@apps-in-toss/web-bridge" "1.1.3"
+    "@apps-in-toss/bridge-core" "1.2.0"
+    "@apps-in-toss/cli" "1.2.0"
+    "@apps-in-toss/framework" "1.2.0"
+    "@apps-in-toss/plugins" "1.2.0"
+    "@apps-in-toss/web-analytics" "1.2.0"
+    "@apps-in-toss/web-bridge" "1.2.0"
     "@babel/core" "7.23.9"
     "@granite-js/cli" "0.1.22"
     "@granite-js/mpack" "0.1.22"

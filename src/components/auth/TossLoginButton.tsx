@@ -1,19 +1,44 @@
 'use client';
 
 import React from 'react';
-import { generateTossLoginUrl } from '@/lib/toss-auth';
+import { appLogin } from '@apps-in-toss/web-framework';
+import { useAuth } from './AuthProvider';
 
 interface TossLoginButtonProps {
   className?: string;
 }
 
 export default function TossLoginButton({ className = '' }: TossLoginButtonProps) {
-  const handleLogin = () => {
+  const { refreshAuth } = useAuth();
+
+  const handleLogin = async () => {
     try {
-      const loginUrl = generateTossLoginUrl();
-      window.location.href = loginUrl;
+      // 토스 앱인토스의 appLogin 함수 사용
+      const { authorizationCode, referrer } = await appLogin();
+
+      // 획득한 인가 코드와 referrer를 서버로 전달
+      const response = await fetch('/api/auth/toss/callback', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          code: authorizationCode,
+          referrer,
+        }),
+      });
+
+      if (response.ok) {
+        // 로그인 성공 시 사용자 정보 새로고침
+        await refreshAuth();
+        // 메인 페이지로 이동
+        window.location.href = '/';
+      } else {
+        const errorData = await response.json();
+        throw new Error(errorData.message || '로그인 처리 실패');
+      }
     } catch (error) {
-      console.error('토스 로그인 URL 생성 실패:', error);
+      console.error('토스 로그인 실패:', error);
       alert('로그인 처리 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.');
     }
   };

@@ -19,7 +19,7 @@
     "deploy": "ait deploy"
   },
   "dependencies": {
-    "@apps-in-toss/web-framework": "^1.1.3",
+    "@apps-in-toss/web-framework": "^1.2.0",
     "@prisma/client": "^6.10.1",
     "@sentry/nextjs": "^10",
     "@supabase/supabase-js": "^2.50.2",

@@ -242,27 +242,7 @@ export async function getSession(): Promise<AuthSession | null> {
   }
 }
 
-/**
- * 토스 로그인 URL을 생성합니다.
- */
-export function generateTossLoginUrl(): string {
-  const clientId = process.env.NEXT_PUBLIC_TOSS_CLIENT_ID;
-  const redirectUri = process.env.NEXT_PUBLIC_TOSS_REDIRECT_URI;
-  const authUrl = process.env.NEXT_PUBLIC_TOSS_AUTH_URL;
-
-  if (!clientId || !redirectUri || !authUrl) {
-    throw new Error('토스 인증 환경변수가 설정되지 않았습니다');
-  }
-
-  const params = new URLSearchParams({
-    response_type: 'code',
-    client_id: clientId,
-    redirect_uri: redirectUri,
-    scope: 'user.id user.profile',
-  });
-
-  return `${authUrl}?${params.toString()}`;
-}
+// generateTossLoginUrl 함수는 appLogin을 사용하므로 제거
 
 /**
  * 로그아웃을 처리합니다.

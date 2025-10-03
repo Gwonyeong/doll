@@ -1,6 +1,6 @@
-'use client';
+"use client";
 
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState } from "react";
 
 interface User {
   id: string;
@@ -21,7 +21,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function useAuth() {
   const context = useContext(AuthContext);
   if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
+    throw new Error("useAuth must be used within an AuthProvider");
   }
   return context;
 }
@@ -36,7 +36,7 @@ export default function AuthProvider({ children }: AuthProviderProps) {
 
   const fetchUser = async () => {
     try {
-      const response = await fetch('/api/auth/user');
+      const response = await fetch("/api/auth/user");
 
       if (response.ok) {
         const data = await response.json();
@@ -45,7 +45,7 @@ export default function AuthProvider({ children }: AuthProviderProps) {
         setUser(null);
       }
     } catch (error) {
-      console.error('사용자 정보 조회 실패:', error);
+      console.error("사용자 정보 조회 실패:", error);
       setUser(null);
     } finally {
       setLoading(false);
@@ -67,9 +67,5 @@ export default function AuthProvider({ children }: AuthProviderProps) {
     refreshAuth,
   };
 
-  return (
-    <AuthContext.Provider value={value}>
-      {children}
-    </AuthContext.Provider>
-  );
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
