@@ -71,7 +71,7 @@ export async function POST(request: NextRequest) {
     const tokens = await exchangeCodeForToken(code, referrer);
 
     // 사용자 정보 조회
-    const userInfo = await fetchTossUserInfo(tokens.access_token);
+    const userInfo = await fetchTossUserInfo(tokens.accessToken);
 
     // 사용자 정보를 데이터베이스에 저장/업데이트
     const user = await upsertUser(userInfo);

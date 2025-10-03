@@ -31,8 +31,9 @@ export default function TossLoginButton({ className = '' }: TossLoginButtonProps
       if (response.ok) {
         // 로그인 성공 시 사용자 정보 새로고침
         await refreshAuth();
-        // 메인 페이지로 이동
-        window.location.href = '/';
+        // 이전 페이지로 이동 (없으면 메인 페이지)
+        const returnUrl = new URLSearchParams(window.location.search).get('returnUrl') || '/';
+        window.location.href = returnUrl;
       } else {
         const errorData = await response.json();
         throw new Error(errorData.message || '로그인 처리 실패');

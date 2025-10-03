@@ -1,4 +1,4 @@
-import CryptoJS from 'crypto-js';
+import * as crypto from 'crypto';
 
 export interface DecryptedUserInfo {
   id: string;
@@ -8,55 +8,91 @@ export interface DecryptedUserInfo {
 }
 
 /**
- * 토스에서 제공하는 AES-256-CBC 암호화된 사용자 정보를 복호화합니다.
- * @param encryptedData 암호화된 데이터
- * @param encryptionKey 토스에서 제공한 암호화 키
+ * 토스에서 제공하는 개별 필드 암호화 데이터를 복호화합니다.
+ * @param encryptedData Base64로 인코딩된 암호화 데이터
+ * @param encryptionKey 32바이트 암호화 키
+ * @param aad AAD (Additional Authenticated Data)
+ * @returns 복호화된 문자열
+ */
+export function decryptTossField(
+  encryptedData: string,
+  encryptionKey: string,
+  aad?: string
+): string {
+  try {
+    // Base64 디코딩
+    const encryptedBuffer = Buffer.from(encryptedData, 'base64');
+
+    // 암호화 키 준비 (32바이트)
+    let keyBuffer: Buffer;
+    if (encryptionKey.length === 64) {
+      // 16진수 문자열인 경우
+      keyBuffer = Buffer.from(encryptionKey, 'hex');
+    } else if (encryptionKey.length === 44) {
+      // Base64 인코딩된 경우
+      keyBuffer = Buffer.from(encryptionKey, 'base64');
+    } else {
+      // UTF-8 문자열인 경우 (32바이트로 패딩/자르기)
+      const key = encryptionKey.padEnd(32, '\0').slice(0, 32);
+      keyBuffer = Buffer.from(key, 'utf8');
+    }
+
+    // GCM 모드의 표준 구조: IV(12바이트) + 암호문 + 인증태그(16바이트)
+    const ivLength = 12;
+    const tagLength = 16;
+
+    // 데이터 추출
+    const iv = encryptedBuffer.subarray(0, ivLength);
+    const authTag = encryptedBuffer.subarray(encryptedBuffer.length - tagLength);
+    const ciphertext = encryptedBuffer.subarray(ivLength, encryptedBuffer.length - tagLength);
+
+    // AES-256-GCM 복호화
+    const decipher = crypto.createDecipheriv('aes-256-gcm', keyBuffer, iv);
+    decipher.setAuthTag(authTag);
+
+    // AAD 설정 (있는 경우)
+    if (aad) {
+      decipher.setAAD(Buffer.from(aad, 'utf8'));
+    }
+
+    // 복호화
+    let decrypted = decipher.update(ciphertext);
+    decrypted = Buffer.concat([decrypted, decipher.final()]);
+
+    // UTF8 문자열로 변환
+    return decrypted.toString('utf8');
+  } catch (error) {
+    console.error('토스 필드 복호화 실패:', error);
+    throw new Error(`필드 복호화에 실패했습니다: ${error instanceof Error ? error.message : '알 수 없는 오류'}`);
+  }
+}
+
+/**
+ * 토스 사용자 정보 객체의 암호화된 필드들을 복호화합니다.
+ * @param tossUserData 토스 API에서 받은 사용자 데이터
+ * @param encryptionKey 암호화 키
+ * @param aad AAD
  * @returns 복호화된 사용자 정보
  */
 export function decryptTossUserInfo(
-  encryptedData: string,
-  encryptionKey: string
+  tossUserData: any,
+  encryptionKey: string,
+  aad?: string
 ): DecryptedUserInfo {
   try {
-    // Base64 디코딩
-    const encrypted = CryptoJS.enc.Base64.parse(encryptedData);
-
-    // 키를 UTF8로 파싱
-    const key = CryptoJS.enc.Utf8.parse(encryptionKey);
-
-    // AES-256-CBC 복호화 (IV는 데이터의 첫 16바이트)
-    const iv = CryptoJS.lib.WordArray.create(encrypted.words.slice(0, 4));
-    const ciphertext = CryptoJS.lib.WordArray.create(encrypted.words.slice(4));
-
-    const decrypted = CryptoJS.AES.decrypt(
-      { ciphertext },
-      key,
-      {
-        iv,
-        mode: CryptoJS.mode.CBC,
-        padding: CryptoJS.pad.Pkcs7
-      }
-    );
-
-    // UTF8 문자열로 변환
-    const decryptedString = decrypted.toString(CryptoJS.enc.Utf8);
-
-    if (!decryptedString) {
-      throw new Error('복호화 결과가 빈 문자열입니다');
-    }
-
-    // JSON 파싱
-    const userInfo = JSON.parse(decryptedString);
+    // 각 암호화된 필드를 개별적으로 복호화
+    const decryptedName = tossUserData.name ? decryptTossField(tossUserData.name, encryptionKey, aad) : '';
+    const decryptedEmail = tossUserData.email ? decryptTossField(tossUserData.email, encryptionKey, aad) : undefined;
 
     return {
-      id: userInfo.id || userInfo.userId,
-      nickname: userInfo.nickname || userInfo.name,
-      email: userInfo.email,
-      avatar: userInfo.avatar || userInfo.profileImage
+      id: tossUserData.userKey.toString(),
+      nickname: decryptedName,
+      email: decryptedEmail,
+      avatar: undefined // 토스에서 아바타 정보를 제공하지 않음
     };
   } catch (error) {
     console.error('토스 사용자 정보 복호화 실패:', error);
-    throw new Error('사용자 정보 복호화에 실패했습니다');
+    throw new Error(`사용자 정보 복호화에 실패했습니다: ${error instanceof Error ? error.message : '알 수 없는 오류'}`);
   }
 }
 

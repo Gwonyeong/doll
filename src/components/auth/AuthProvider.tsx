@@ -1,6 +1,7 @@
 "use client";
 
 import React, { createContext, useContext, useEffect, useState } from "react";
+import { useRouter, usePathname } from "next/navigation";
 
 interface User {
   id: string;
@@ -33,6 +34,8 @@ interface AuthProviderProps {
 export default function AuthProvider({ children }: AuthProviderProps) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const router = useRouter();
+  const pathname = usePathname();
 
   const fetchUser = async () => {
     try {
@@ -41,6 +44,13 @@ export default function AuthProvider({ children }: AuthProviderProps) {
       if (response.ok) {
         const data = await response.json();
         setUser(data.user);
+      } else if (response.status === 401) {
+        // 401 에러 시 로그인 페이지로 리다이렉트 (단, 이미 로그인 페이지가 아닌 경우에만)
+        setUser(null);
+        if (pathname !== "/login") {
+          const returnUrl = encodeURIComponent(pathname);
+          router.push(`/login?returnUrl=${returnUrl}`);
+        }
       } else {
         setUser(null);
       }
