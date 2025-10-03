@@ -1,0 +1,1126 @@
+"use client";
+
+import { useEffect, useRef, useState, useCallback, useMemo } from "react";
+import { motion } from "framer-motion";
+import { MapPin, X, Star } from "lucide-react";
+import { useRouter } from "next/navigation";
+import Image from "next/image";
+import StoreInfo from "@/components/StoreInfo";
+import { getTossBridge, isTossWebView, useSafeAreaInsets } from "@/lib/toss-bridge";
+import { useAuth } from "@/components/auth/AuthProvider";
+import UserProfile from "@/components/auth/UserProfile";
+
+// 네이버 지도 타입 정의
+declare global {
+  interface Window {
+    naver: {
+      maps: {
+        LatLng: new (lat: number, lng: number) => any;
+        Map: new (element: HTMLElement, options: any) => any;
+        Marker: new (options: any) => any;
+        Size: new (width: number, height: number) => any;
+        Point: new (x: number, y: number) => any;
+        Event: {
+          addListener: (
+            target: any,
+            type: string,
+            listener: () => void
+          ) => void;
+        };
+        Position: {
+          TOP_RIGHT: any;
+        };
+        ZoomControlStyle: {
+          SMALL: any;
+        };
+      };
+    };
+  }
+}
+
+// 게임업소 데이터 타입
+interface GameStore {
+  id: number;
+  name: string;
+  address: string;
+  phone?: string;
+  lat: number;
+  lng: number;
+  distance: number;
+  status: string;
+  category: string;
+  gameCount?: number;
+  area?: string;
+  averageRating?: number | null;
+  reviewCount?: number;
+}
+
+// 리뷰 타입
+interface Review {
+  id: string;
+  rating: number;
+  content: string;
+  tags: string[];
+  images: string[];
+  createdAt: string;
+}
+
+export default function MapPageClient() {
+  const mapRef = useRef<HTMLDivElement>(null);
+  const router = useRouter();
+  const tossBridge = getTossBridge();
+  const safeAreaInsets = useSafeAreaInsets();
+  const isWebView = isTossWebView();
+  const { user, loading: authLoading, refreshAuth } = useAuth();
+
+  const [map, setMap] = useState<any>(null);
+  const [stores, setStores] = useState<GameStore[]>([]);
+  const [selectedStore, setSelectedStore] = useState<GameStore | null>(null);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [filterCategory, setFilterCategory] = useState("전체");
+  const [userLocation, setUserLocation] = useState<{
+    lat: number;
+    lng: number;
+  } | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [radius, setRadius] = useState(5); // 검색 반경 (km)
+  const [markers, setMarkers] = useState<any[]>([]); // 마커 관리를 위한 상태 추가
+  const [reviews, setReviews] = useState<Review[]>([]);
+  const [reviewsLoading, setReviewsLoading] = useState(false);
+  const [isBottomSheetExpanded, setIsBottomSheetExpanded] = useState(false);
+  const [dragStartY, setDragStartY] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragOffset, setDragOffset] = useState(0);
+
+  // 리뷰 데이터 가져오기
+  const fetchReviews = useCallback(async (storeId: number) => {
+    setReviewsLoading(true);
+    try {
+      const response = await fetch(`/api/reviews?storeId=${storeId}`);
+      const result = await response.json();
+
+      if (result.success) {
+        setReviews(result.data.reviews);
+      } else {
+        setReviews([]);
+      }
+    } catch (error) {
+      console.error("리뷰 로드 에러:", error);
+      setReviews([]);
+    } finally {
+      setReviewsLoading(false);
+    }
+  }, []);
+
+  // 사용자 위치 가져오기
+  const getUserLocation = () => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const location = {
+            lat: position.coords.latitude,
+            lng: position.coords.longitude,
+          };
+          setUserLocation(location);
+
+          if (map) {
+            const naverLocation = new window.naver.maps.LatLng(
+              location.lat,
+              location.lng
+            );
+            map.setCenter(naverLocation);
+            map.setZoom(15);
+          }
+
+          // 위치 기반으로 근처 매장 검색
+          fetchNearbyStores(location.lat, location.lng);
+        },
+        (error) => {
+          console.error("위치 정보를 가져올 수 없습니다:", error);
+          // 기본 위치 (서울 중심)로 매장 검색
+          fetchNearbyStores(37.5665, 126.978);
+        }
+      );
+    } else {
+      console.error("Geolocation이 지원되지 않습니다.");
+      // 기본 위치로 매장 검색
+      fetchNearbyStores(37.5665, 126.978);
+    }
+  };
+
+  // 지도 확대
+  const zoomIn = () => {
+    if (map) {
+      const currentZoom = map.getZoom();
+      map.setZoom(currentZoom + 1);
+    }
+  };
+
+  // 지도 축소
+  const zoomOut = () => {
+    if (map) {
+      const currentZoom = map.getZoom();
+      map.setZoom(currentZoom - 1);
+    }
+  };
+
+  // 근처 매장 데이터 가져오기
+  const fetchNearbyStores = useCallback(async (lat: number, lng: number) => {
+    setLoading(true);
+    try {
+      const response = await fetch(
+        `/api/stores/nearby?lat=${lat}&lng=${lng}&radius=${radius}&limit=100`
+      );
+      const result = await response.json();
+
+      if (result.success) {
+        setStores(result.data);
+      } else {
+        console.error("매장 데이터를 가져오는데 실패했습니다:", result.error);
+      }
+    } catch (error) {
+      console.error("API 호출 오류:", error);
+    } finally {
+      setLoading(false);
+    }
+  }, [radius]);
+
+  // 지도 초기화
+  useEffect(() => {
+
+    if (!mapRef.current) {
+      return;
+    }
+
+    // 먼저 사용자 위치를 가져옴
+    const initializeWithUserLocation = async () => {
+      try {
+        // 토스 웹뷰 환경에서는 토스 브릿지 사용
+        if (isWebView) {
+          const hasPermission = await tossBridge.requestPermission('location');
+          if (hasPermission) {
+            const location = await tossBridge.getLocation();
+            setUserLocation(location);
+            initializeMap(location.lat, location.lng);
+            fetchNearbyStores(location.lat, location.lng);
+
+            // 토스 이벤트 로깅
+            tossBridge.logEvent('map_location_granted', { lat: location.lat, lng: location.lng });
+          } else {
+            // 기본 위치 (서울 중심)로 초기화
+            initializeMap(37.5665, 126.978);
+            fetchNearbyStores(37.5665, 126.978);
+            tossBridge.logEvent('map_location_denied');
+          }
+        } else {
+          // 일반 웹 환경에서는 브라우저 API 사용
+          if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+              (position) => {
+                const location = {
+                  lat: position.coords.latitude,
+                  lng: position.coords.longitude,
+                };
+                setUserLocation(location);
+                initializeMap(location.lat, location.lng);
+                fetchNearbyStores(location.lat, location.lng);
+              },
+              () => {
+                // 기본 위치 (서울 중심)로 초기화
+                initializeMap(37.5665, 126.978);
+                fetchNearbyStores(37.5665, 126.978);
+              }
+            );
+          } else {
+            // 기본 위치로 초기화
+            initializeMap(37.5665, 126.978);
+            fetchNearbyStores(37.5665, 126.978);
+          }
+        }
+      } catch (error) {
+        console.error('위치 정보 가져오기 실패:', error);
+        // 기본 위치로 초기화
+        initializeMap(37.5665, 126.978);
+        fetchNearbyStores(37.5665, 126.978);
+      }
+    };
+
+    if (!window.naver) {
+      // API 로딩 대기
+      const checkNaverMaps = setInterval(() => {
+        if (window.naver && window.naver.maps) {
+          clearInterval(checkNaverMaps);
+          initializeWithUserLocation();
+        }
+      }, 100);
+
+      // 10초 후 타임아웃
+      setTimeout(() => {
+        clearInterval(checkNaverMaps);
+      }, 10000);
+
+      return;
+    }
+
+    initializeWithUserLocation();
+
+    function initializeMap(lat: number, lng: number) {
+      if (!mapRef.current || !window.naver) return;
+
+      const mapOptions = {
+        center: new window.naver.maps.LatLng(lat, lng), // 사용자 위치를 중심으로
+        zoom: 15, // 더 가까운 줌 레벨
+        mapTypeControl: false,
+        scaleControl: false,
+        logoControl: false,
+        mapDataControl: false,
+        zoomControl: false, // 기본 줌 컨트롤 비활성화
+      };
+
+      try {
+        const naverMap = new window.naver.maps.Map(mapRef.current, mapOptions);
+        setMap(naverMap);
+      } catch (error) {
+        console.error("Error creating map:", error);
+      }
+    }
+  }, [fetchNearbyStores, isWebView, tossBridge]);
+
+  // 매장 마커 생성
+  useEffect(() => {
+    if (!map || !stores.length) return;
+
+    // 기존 마커들 제거
+    markers.forEach((marker) => {
+      marker.setMap(null);
+    });
+
+    // 새 마커들 생성
+    const newMarkers: any[] = [];
+    stores.forEach((store) => {
+      const isSelected = selectedStore?.id === store.id;
+
+      // SVG 아이콘 선택
+      const svgIcon = isSelected
+        ? `<svg width="42" height="52" viewBox="0 0 42 52" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M21.0029 0C32.4391 7.74029e-05 41.7404 9.35688 42 21C40.9757 35.2294 29.2083 45.2322 21.5254 51.5L19.9971 50.2949C12.1201 44.0272 0.98425 34.1249 0 21H0.00585938C0.265411 9.35693 9.56688 0.000159809 21.0029 0Z" fill="#FF2D55"/>
+          <path d="M26.1594 13.6348H23.4709V16.2529H25.0051C25.5015 16.253 25.9792 16.431 26.3527 16.751L26.5061 16.8955L31.3986 22.0381C32.0004 22.6707 32.1421 23.6128 31.7512 24.3936L28.2316 31.4199L24.5256 29.5654L27.3947 23.8389L24.1164 20.3955H18.8537L15.5754 23.8389L18.4445 29.5654L14.7385 31.4199L11.2189 24.3936C10.828 23.6128 10.9697 22.6707 11.5715 22.0381L16.4641 16.8955L16.6174 16.751C16.9908 16.4311 17.4678 16.2531 17.9641 16.2529H19.3283V13.6348H16.6408V9.49219H26.1594V13.6348Z" fill="white"/>
+        </svg>`
+        : `<svg width="42" height="52" viewBox="0 0 42 52" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M21.0029 0C32.4391 7.74029e-05 41.7404 9.35688 42 21C40.9757 35.2294 29.2083 45.2322 21.5254 51.5L19.9971 50.2949C12.1201 44.0272 0.98425 34.1249 0 21H0.00585938C0.265411 9.35693 9.56688 0.000159809 21.0029 0Z" fill="#AFB8C7"/>
+          <path d="M26.1594 13.6348H23.4709V16.2529H25.0051C25.5015 16.253 25.9792 16.431 26.3527 16.751L26.5061 16.8955L31.3986 22.0381C32.0004 22.6707 32.1421 23.6128 31.7512 24.3936L28.2316 31.4199L24.5256 29.5654L27.3947 23.8389L24.1164 20.3955H18.8537L15.5754 23.8389L18.4445 29.5654L14.7385 31.4199L11.2189 24.3936C10.828 23.6128 10.9697 22.6707 11.5715 22.0381L16.4641 16.8955L16.6174 16.751C16.9908 16.4311 17.4678 16.2531 17.9641 16.2529H19.3283V13.6348H16.6408V9.49219H26.1594V13.6348Z" fill="white"/>
+        </svg>`;
+
+      const marker = new window.naver.maps.Marker({
+        position: new window.naver.maps.LatLng(store.lat, store.lng),
+        map: map,
+        title: store.name,
+        icon: {
+          content: `
+            <div class="relative">
+              <div class="transform hover:scale-110 transition-transform cursor-pointer">
+                ${svgIcon}
+              </div>
+              <div class="absolute -bottom-12 left-1/2 transform -translate-x-1/2 bg-white px-2 py-1 rounded shadow-lg text-xs font-medium whitespace-nowrap text-center">
+                <div>${store.name.length > 10 ? store.name.substring(0, 10) + '...' : store.name}</div>
+                ${store.averageRating && store.reviewCount && store.reviewCount > 0
+                  ? `<div class="text-yellow-500 text-xs mt-1">★${store.averageRating} (${store.reviewCount})</div>`
+                  : ''
+                }
+              </div>
+            </div>
+          `,
+          size: new window.naver.maps.Size(42, 52),
+          anchor: new window.naver.maps.Point(21, 52),
+        },
+      });
+
+      // 마커 클릭 이벤트
+      window.naver.maps.Event.addListener(marker, "click", () => {
+        setSelectedStore(store);
+        fetchReviews(store.id); // 리뷰 데이터 로드
+        // 클릭한 마커 위치를 지도 중앙으로 이동
+        if (map) {
+          map.setCenter(
+            new window.naver.maps.LatLng(store.lat - 0.002, store.lng)
+          );
+          map.setZoom(16);
+        }
+      });
+
+      newMarkers.push(marker);
+    });
+
+    // 마커 상태 업데이트
+    setMarkers(newMarkers);
+
+    // 사용자 위치 마커
+    if (userLocation) {
+      const userMarker = new window.naver.maps.Marker({
+        position: new window.naver.maps.LatLng(
+          userLocation.lat,
+          userLocation.lng
+        ),
+        map: map,
+        title: "내 위치",
+        icon: {
+          content: `
+            <div class="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center shadow-lg border-3 border-white">
+              <div class="w-3 h-3 bg-white rounded-full"></div>
+            </div>
+          `,
+          size: new window.naver.maps.Size(32, 32),
+          anchor: new window.naver.maps.Point(16, 16),
+        },
+      });
+      newMarkers.push(userMarker);
+    }
+
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [map, stores, userLocation, selectedStore, fetchReviews]); // markers 제거하여 무한 리렌더링 방지
+
+  // 필터링된 매장 목록 (useMemo로 최적화)
+  const filteredStores = useMemo(() => {
+    return stores.filter((store) => {
+      const matchesCategory =
+        filterCategory === "전체" || store.category.includes(filterCategory);
+      return matchesCategory;
+    });
+  }, [stores, filterCategory]);
+
+  // 매장 카테고리 (실제 데이터 기반) - useMemo로 최적화
+  const categories = useMemo(() => ["전체", "게임제공업", "청소년게임제공업"], []);
+
+  // 반경 변경 핸들러 (useCallback으로 최적화)
+  const handleRadiusChange = useCallback((newRadius: number) => {
+    setRadius(newRadius);
+    if (userLocation) {
+      fetchNearbyStores(userLocation.lat, userLocation.lng);
+    }
+  }, [userLocation, fetchNearbyStores]);
+
+  // 드래그 이벤트 핸들러
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      if (isDragging) {
+        const deltaY = dragStartY - e.clientY;
+        setDragOffset(Math.max(0, deltaY));
+
+        // 150px 이상 드래그하면 전체 화면으로 확장
+        if (deltaY > 150) {
+          setIsBottomSheetExpanded(true);
+          setIsDragging(false);
+          setDragOffset(0);
+        }
+      }
+    };
+
+    const handleTouchMove = (e: TouchEvent) => {
+      if (isDragging) {
+        const deltaY = dragStartY - e.touches[0].clientY;
+        setDragOffset(Math.max(0, deltaY));
+
+        // 150px 이상 드래그하면 전체 화면으로 확장
+        if (deltaY > 150) {
+          setIsBottomSheetExpanded(true);
+          setIsDragging(false);
+          setDragOffset(0);
+        }
+      }
+    };
+
+    const handleMouseUp = () => {
+      setIsDragging(false);
+      setDragOffset(0);
+    };
+
+    const handleTouchEnd = () => {
+      setIsDragging(false);
+      setDragOffset(0);
+    };
+
+    if (isDragging) {
+      document.addEventListener("mousemove", handleMouseMove);
+      document.addEventListener("mouseup", handleMouseUp);
+      document.addEventListener("touchmove", handleTouchMove);
+      document.addEventListener("touchend", handleTouchEnd);
+    }
+
+    return () => {
+      document.removeEventListener("mousemove", handleMouseMove);
+      document.removeEventListener("mouseup", handleMouseUp);
+      document.removeEventListener("touchmove", handleTouchMove);
+      document.removeEventListener("touchend", handleTouchEnd);
+    };
+  }, [isDragging, dragStartY]);
+
+  // 바텀시트 초기화
+  useEffect(() => {
+    if (selectedStore) {
+      setIsBottomSheetExpanded(false);
+      setDragOffset(0);
+    }
+  }, [selectedStore]);
+
+  return (
+    <div className="relative w-full h-screen overflow-hidden">
+      {/* 상단 헤더 */}
+      <div className="absolute top-0 left-0 right-0 z-20 bg-white/90 backdrop-blur-sm border-b border-gray-200/50">
+        <div
+          className="flex items-center justify-between p-4"
+          style={{ paddingTop: `${safeAreaInsets.top || 0}px` }}
+        >
+          {/* 왼쪽: 메뉴 버튼 */}
+          <button
+            onClick={() => setIsMenuOpen(true)}
+            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+          >
+            <svg
+              className="w-6 h-6 text-gray-700"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M4 6h16M4 12h16M4 18h16"
+              />
+            </svg>
+          </button>
+
+          {/* 중앙: 로고 */}
+          <h1 className="text-lg font-bold gradient-text">DollCatcher</h1>
+
+          {/* 오른쪽: 사용자 프로필 */}
+          {authLoading ? (
+            <div className="w-10 h-10 rounded-full bg-gray-200 animate-pulse" />
+          ) : user ? (
+            <UserProfile
+              user={{
+                id: user.id,
+                nickname: user.nickname,
+                email: user.email,
+                avatar: user.avatar,
+              }}
+              onLogout={refreshAuth}
+            />
+          ) : (
+            <div className="w-10 h-10" />
+          )}
+        </div>
+      </div>
+
+      {/* 네이버 지도 */}
+      <div ref={mapRef} className="w-full h-full" />
+
+      {/* 로딩 오버레이 */}
+      {loading && (
+        <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 flex items-center gap-3">
+            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
+            <span className="text-gray-700">매장 정보를 불러오는 중...</span>
+          </div>
+        </div>
+      )}
+
+      {/* 사이드 메뉴 */}
+      <motion.div
+        initial={{ x: -400 }}
+        animate={{ x: isMenuOpen ? 0 : -400 }}
+        transition={{ type: "spring", damping: 25, stiffness: 200 }}
+        className="absolute top-0 left-0 w-80 h-full bg-white shadow-2xl z-20 overflow-y-auto"
+      >
+        <div className="p-6">
+          {/* 메뉴 헤더 */}
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-2xl font-bold gradient-text">DollCatcher</h2>
+            <button
+              onClick={() => setIsMenuOpen(false)}
+              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+            >
+              <X size={24} className="text-gray-600" />
+            </button>
+          </div>
+
+          {/* 검색 반경 설정 */}
+          <div className="mb-6">
+            <h3 className="text-lg font-semibold mb-3 text-gray-800">
+              검색 반경
+            </h3>
+            <div className="flex gap-2">
+              {[1, 3, 5, 10].map((r) => (
+                <button
+                  key={r}
+                  onClick={() => handleRadiusChange(r)}
+                  className={`px-3 py-2 rounded-full text-sm font-medium transition-all ${
+                    radius === r
+                      ? "bg-primary text-white shadow-lg"
+                      : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                  }`}
+                >
+                  {r}km
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* 카테고리 필터 */}
+          <div className="mb-6">
+            <h3 className="text-lg font-semibold mb-3 text-gray-800">
+              카테고리
+            </h3>
+            <div className="flex flex-wrap gap-2">
+              {categories.map((category) => (
+                <button
+                  key={category}
+                  onClick={() => setFilterCategory(category)}
+                  className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
+                    filterCategory === category
+                      ? "bg-primary text-white shadow-lg"
+                      : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                  }`}
+                >
+                  {category}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* 매장 목록 */}
+          <div>
+            <h3 className="text-lg font-semibold mb-3 text-gray-800">
+              매장 목록 ({filteredStores.length})
+            </h3>
+            <div className="space-y-3">
+              {filteredStores.map((store) => (
+                <motion.div
+                  key={store.id}
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => {
+                    setSelectedStore(store);
+                    fetchReviews(store.id); // 리뷰 데이터 로드
+                    if (map) {
+                      map.setCenter(
+                        new window.naver.maps.LatLng(store.lat, store.lng)
+                      );
+                      map.setZoom(16);
+                    }
+                  }}
+                  className="p-4 bg-gray-50 rounded-xl cursor-pointer hover:bg-gray-100 transition-colors border border-gray-200"
+                >
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <h4 className="font-semibold text-gray-800">
+                          {store.name}
+                        </h4>
+                        {store.averageRating && store.reviewCount && store.reviewCount > 0 && (
+                          <div className="flex items-center gap-1">
+                            <span className="text-yellow-500 text-sm">★</span>
+                            <span className="text-sm font-medium text-gray-700">
+                              {store.averageRating}
+                            </span>
+                            <span className="text-xs text-gray-500">
+                              ({store.reviewCount})
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                      <p className="text-sm text-gray-600 mb-2 line-clamp-2">
+                        {store.address}
+                      </p>
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="text-blue-500 text-sm font-medium">
+                          {store.distance}km
+                        </span>
+                        {store.gameCount && (
+                          <span className="text-xs text-gray-500">
+                            게임기 {store.gameCount}대
+                          </span>
+                        )}
+                      </div>
+                      <span className="text-xs text-primary font-medium">
+                        {store.category}
+                      </span>
+                    </div>
+                    <MapPin size={20} className="text-gray-400 mt-1" />
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </motion.div>
+
+      {/* 선택된 매장 정보 카드 */}
+      {selectedStore && (
+        <div
+          className={`fixed bg-white border-t border-gray-200 shadow-lg z-50
+            ${isBottomSheetExpanded ? "inset-0" : "bottom-0 left-1/2 -translate-x-1/2"}
+          `}
+          style={{
+            height: isBottomSheetExpanded ? "100vh" : `${450 + dragOffset}px`,
+            borderTopLeftRadius: isBottomSheetExpanded ? "0px" : "20px",
+            borderTopRightRadius: isBottomSheetExpanded ? "0px" : "20px",
+            boxShadow: "0px -4px 9px 0px #0000001A",
+            maxHeight: isBottomSheetExpanded ? "100vh" : "calc(100vh - 100px)",
+            width: isBottomSheetExpanded ? "100%" : "min(600px, 100vw)",
+          }}
+        >
+          {/* 드래그 핸들 - 확장되지 않았을 때만 표시 */}
+          {!isBottomSheetExpanded && (
+            <div
+              className="w-full py-3 cursor-pointer flex justify-center hover:bg-gray-50 transition-colors"
+              onMouseDown={(e) => {
+                setIsDragging(true);
+                setDragStartY(e.clientY);
+              }}
+              onTouchStart={(e) => {
+                setIsDragging(true);
+                setDragStartY(e.touches[0].clientY);
+              }}
+            >
+              <div
+                className={`w-12 h-1 rounded-full transition-colors ${
+                  isDragging ? "bg-blue-400" : "bg-gray-300"
+                }`}
+              ></div>
+            </div>
+          )}
+
+          {/* 확장된 상태일 때 내부 컨테이너 */}
+          <div className={`${isBottomSheetExpanded ? "max-w-[600px] mx-auto w-full" : ""}`}>
+            {/* 전체 화면일 때 헤더 */}
+            {isBottomSheetExpanded && (
+              <div className="px-6 pb-4  border-gray-200 flex items-center justify-between">
+                <button
+                  onClick={() => setIsBottomSheetExpanded(false)}
+                  className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                >
+                  <svg
+                    width="24"
+                    height="24"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <path
+                      d="M15 18L9 12L15 6"
+                      stroke="#374151"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                </button>
+                <h2 className="text-lg font-semibold text-gray-900">
+                  {selectedStore.name}
+                </h2>
+                <div className="w-10"></div>
+              </div>
+            )}
+
+          {/* 전체 화면일 때 매장 이미지 - 첫 번째 리뷰에 이미지가 없을 때만 표시 */}
+
+          <div className={`h-full flex flex-col ${isBottomSheetExpanded ? "" : "overflow-hidden"}`}>
+            <div
+              className={`flex justify-between items-start mb-4 p-6 ${
+                isBottomSheetExpanded ? "hidden" : ""
+              }`}
+            >
+              <StoreInfo
+                name={selectedStore.name}
+                address={selectedStore.address}
+                distance={selectedStore.distance}
+                gameCount={selectedStore.gameCount}
+              />
+
+              <button
+                onClick={() => setSelectedStore(null)}
+                className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+              >
+                <X className="w-5 h-5 text-gray-500" />
+              </button>
+            </div>
+
+            {/* 리뷰 섹션 */}
+            <div
+              className={`border-gray-200 ${
+                isBottomSheetExpanded ? "flex-1 overflow-y-auto pb-24" : "overflow-y-auto"
+              }`}
+              style={{
+                maxHeight: isBottomSheetExpanded ? "calc(100vh - 180px)" : "200px"
+              }}
+            >
+              {reviewsLoading ? (
+                <div className="text-center py-4">
+                  <p className="text-sm text-gray-500">후기를 불러오는 중...</p>
+                </div>
+              ) : reviews.length === 0 ? (
+                <div className="text-center py-4">
+                  <p className="text-sm text-gray-500">아직 후기가 없습니다.</p>
+                </div>
+              ) : isBottomSheetExpanded ? (
+                // 전체 화면일 때 리뷰 레이아웃
+                <div className="px-6">
+                  {/* 첫 번째 리뷰의 이미지 섹션 */}
+                  {reviews[0]?.images && reviews[0].images.length > 0 && (
+                    <div className="mb-6">
+                      {reviews[0].images.length === 1 ? (
+                        // 이미지 1장인 경우
+                        <div className="relative w-full h-64">
+                          <Image
+                            src={reviews[0].images[0]}
+                            alt="리뷰 이미지"
+                            fill
+                            className="object-cover"
+                          />
+                        </div>
+                      ) : reviews[0].images.length === 2 ? (
+                        // 이미지 2장인 경우 - 가장 최신 이미지만 출력
+                        <div className="relative w-full h-64">
+                          <Image
+                            src={reviews[0].images[0]}
+                            alt="리뷰 이미지"
+                            fill
+                            className="object-cover"
+                          />
+                        </div>
+                      ) : (
+                        // 이미지 3장 이상인 경우 - 2:1 레이아웃
+                        <div className="grid grid-cols-3 h-64">
+                          <div className="col-span-2 relative">
+                            <Image
+                              src={reviews[0].images[0]}
+                              alt="리뷰 이미지 1"
+                              fill
+                              className="object-cover"
+                            />
+                          </div>
+                          <div className="grid grid-rows-2">
+                            <div className="relative">
+                              <Image
+                                src={reviews[0].images[1]}
+                                alt="리뷰 이미지 2"
+                                fill
+                                className="object-cover"
+                              />
+                            </div>
+                            <div className="relative">
+                              <Image
+                                src={reviews[0].images[2]}
+                                alt="리뷰 이미지 3"
+                                fill
+                                className="object-cover"
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* 매장 정보 섹션 */}
+                  <div className="mb-6">
+                    <StoreInfo
+                      name={selectedStore.name}
+                      address={selectedStore.address}
+                      distance={selectedStore.distance}
+                      gameCount={selectedStore.gameCount}
+                      isExpanded={true}
+                    />
+                  </div>
+
+                  {/* 리뷰 리스트 */}
+                  <div className="space-y-4">
+                    {reviews.map((review) => (
+                      <div
+                        key={review.id}
+                        className="bg-white border-b border-gray-200 p-4"
+                      >
+                        {/* 별점 - 좌측 상단 */}
+                        <div className="flex gap-1 mb-3">
+                          {[1, 2, 3, 4, 5].map((star) => (
+                            <Star
+                              key={star}
+                              size={16}
+                              className={
+                                star <= review.rating
+                                  ? "fill-yellow-400 text-yellow-400"
+                                  : "fill-gray-200 text-gray-200"
+                              }
+                            />
+                          ))}
+                        </div>
+
+                        {/* 이미지 - 별점 바로 아래 (최대 4장, 좌우 공백 없이) */}
+                        {review.images.length > 0 && (
+                          <div className="grid grid-cols-4 gap-1 mb-3">
+                            {review.images.slice(0, 4).map((image, index) => (
+                              <div
+                                key={index}
+                                className="relative aspect-square bg-gray-100 rounded overflow-hidden"
+                              >
+                                <Image
+                                  src={image}
+                                  alt={`리뷰 이미지 ${index + 1}`}
+                                  fill
+                                  className="object-cover"
+                                />
+                              </div>
+                            ))}
+                            {/* 빈 이미지 슬롯 채우기 */}
+                            {review.images.length < 4 &&
+                              Array.from({
+                                length: 4 - review.images.length,
+                              }).map((_, index) => (
+                                <div
+                                  key={`empty-${index}`}
+                                  className="aspect-square bg-gray-50 rounded"
+                                />
+                              ))}
+                          </div>
+                        )}
+
+                        {/* 태그 - 이미지 아래 */}
+                        {review.tags.length > 0 && (
+                          <div className="flex flex-wrap gap-2 mb-3">
+                            {review.tags.map((tag, index) => (
+                              <span
+                                key={index}
+                                className="text-sm text-gray-600"
+                              >
+                                #{tag}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+
+                        {/* 후기 내용 - 태그 아래 */}
+                        <p className="text-sm text-gray-700 leading-relaxed mb-2">
+                          {review.content}
+                        </p>
+
+                        {/* 날짜 - 후기 내용 아래 우측 */}
+                        <div className="text-right">
+                          <span className="text-xs text-gray-500">
+                            {new Date(review.createdAt)
+                              .toLocaleDateString("ko-KR", {
+                                year: "2-digit",
+                                month: "2-digit",
+                                day: "2-digit",
+                              })
+                              .replace(/\./g, ".")
+                              .slice(0, -1)}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                // 기본 바텀시트일 때 리뷰 레이아웃
+                <div
+                  className="flex gap-4 overflow-x-auto pb-2 mx-2 px-2 scrollbar-hide"
+                  style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
+                >
+                  {reviews.map((review) => (
+                    <div
+                      key={review.id}
+                      className="flex-shrink-0 w-72 bg-gray-50 rounded-lg p-3 relative cursor-pointer hover:bg-gray-100 transition-colors"
+                      onClick={() => setIsBottomSheetExpanded(true)}
+                    >
+                      {/* 상단 영역: 별점(좌측) + 날짜(우측) */}
+                      <div className="flex items-center justify-between mb-3">
+                        {/* 별점 - 왼쪽 상단 */}
+                        <div className="flex gap-1">
+                          {[1, 2, 3, 4, 5].map((star) => (
+                            <Star
+                              key={star}
+                              size={16}
+                              className={
+                                star <= review.rating
+                                  ? "fill-yellow-400 text-yellow-400"
+                                  : "fill-gray-200 text-gray-200"
+                              }
+                            />
+                          ))}
+                        </div>
+
+                        {/* 날짜 - 우측 상단 */}
+                        <span className="text-xs text-gray-500">
+                          {new Date(review.createdAt)
+                            .toLocaleDateString("ko-KR", {
+                              year: "2-digit",
+                              month: "2-digit",
+                              day: "2-digit",
+                            })
+                            .replace(/\./g, ".")
+                            .slice(0, -1)}
+                        </span>
+                      </div>
+
+                      {/* 하단 영역 */}
+                      <div className="flex justify-between items-end">
+                        {/* 왼쪽: 리뷰 내용 */}
+                        <div className="flex-1 pr-3">
+                          <p className="text-sm text-gray-700 leading-relaxed">
+                            {review.content.length > 60
+                              ? `${review.content.substring(0, 60)}...더보기`
+                              : review.content}
+                          </p>
+                        </div>
+
+                        {/* 오른쪽: 이미지 */}
+                        {review.images.length > 0 && (
+                          <div className="flex-shrink-0">
+                            <div className="relative w-12 h-12">
+                              <Image
+                                src={review.images[0]}
+                                alt="리뷰 이미지"
+                                fill
+                                className="object-cover rounded"
+                              />
+                              {/* 이미지 개수 표시 */}
+                              {review.images.length > 1 && (
+                                <div className="absolute bottom-1 left-1 bg-black bg-opacity-70 text-white text-xs px-1 py-0.5 rounded">
+                                  +{review.images.length - 1}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
+          </div>
+          {/* 고정된 후기 작성하기 버튼 */}
+          <div className="absolute bottom-0 left-0 right-0 p-4 bg-white border-t border-gray-200">
+            <div className={`${isBottomSheetExpanded ? "max-w-[600px] mx-auto" : ""}`}>
+              <button
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                router.push(`/reviews/${selectedStore.id}`);
+              }}
+              className="w-full py-3 px-4 rounded-lg font-medium transition-colors flex items-center justify-center gap-2 hover:opacity-90 active:scale-[0.98]"
+              style={{ backgroundColor: "#3182F8", color: "white" }}
+            >
+              <svg
+                className="w-4 h-4"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"
+                />
+              </svg>
+              후기 작성하기
+            </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 현재 위치 버튼 */}
+      <motion.button
+        initial={{ scale: 0 }}
+        animate={{ scale: 1 }}
+        transition={{ delay: 0.5, type: "spring", stiffness: 200 }}
+        className="absolute right-4 w-12 h-12 bg-white rounded-lg flex items-center justify-center hover:shadow-2xl transition-shadow z-10 border border-gray-200"
+        style={{
+          boxShadow: "0px 0px 4px 2px #0000001A",
+          top: `calc(80px + ${safeAreaInsets.top || 0}px)`
+        }}
+        onClick={getUserLocation}
+      >
+        <svg
+          width="24"
+          height="24"
+          viewBox="0 0 24 24"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <circle
+            cx="11.995"
+            cy="12"
+            r="7.25"
+            stroke="#8C8C8C"
+            strokeWidth="1.5"
+          />
+          <circle
+            cx="11.995"
+            cy="12"
+            r="3.25"
+            stroke="#8C8C8C"
+            strokeWidth="1.5"
+          />
+          <path d="M11.995 0V4" stroke="#8C8C8C" strokeWidth="1.5" />
+          <path d="M11.995 20V24" stroke="#8C8C8C" strokeWidth="1.5" />
+          <path d="M0 12.0049L4 12.0049" stroke="#8C8C8C" strokeWidth="1.5" />
+          <path d="M20 12.0049L24 12.0049" stroke="#8C8C8C" strokeWidth="1.5" />
+        </svg>
+      </motion.button>
+
+      {/* 지도 확대/축소 버튼 */}
+      <div className="absolute right-4 z-10" style={{ top: `calc(144px + ${safeAreaInsets.top || 0}px)` }}>
+        {/* 확대 버튼 */}
+        <motion.button
+          initial={{ scale: 0 }}
+          animate={{ scale: 1 }}
+          transition={{ delay: 0.6, type: "spring", stiffness: 200 }}
+          className="w-12 h-12 bg-white rounded-t-lg flex items-center justify-center hover:shadow-2xl transition-shadow border border-gray-200 border-b-0"
+          style={{ boxShadow: "0px 0px 4px 2px #0000001A" }}
+          onClick={zoomIn}
+        >
+          <svg
+            width="19"
+            height="20"
+            viewBox="0 0 19 20"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <circle cx="8" cy="8" r="7" stroke="#AFB4B8" strokeWidth="2" />
+            <path d="M5 8H11" stroke="#AFB4B8" strokeWidth="2" />
+            <path d="M8 11L8 5" stroke="#AFB4B8" strokeWidth="2" />
+            <path d="M18 19L13.0503 14.0503" stroke="#AFB4B8" strokeWidth="2" />
+          </svg>
+        </motion.button>
+
+        {/* 축소 버튼 */}
+        <motion.button
+          initial={{ scale: 0 }}
+          animate={{ scale: 1 }}
+          transition={{ delay: 0.7, type: "spring", stiffness: 200 }}
+          className="w-12 h-12 bg-white rounded-b-lg flex items-center justify-center hover:shadow-2xl transition-shadow border border-gray-200"
+          style={{ boxShadow: "0px 0px 4px 2px #0000001A" }}
+          onClick={zoomOut}
+        >
+          <svg
+            width="19"
+            height="20"
+            viewBox="0 0 19 20"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <circle cx="8" cy="8" r="7" stroke="#AFB4B8" strokeWidth="2" />
+            <path d="M5 8H11" stroke="#AFB4B8" strokeWidth="2" />
+            <path d="M18 19L13.0503 14.0503" stroke="#AFB4B8" strokeWidth="2" />
+          </svg>
+        </motion.button>
+      </div>
+    </div>
+  );
+}

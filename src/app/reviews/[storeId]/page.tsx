@@ -6,10 +6,12 @@ import { ChevronLeft, Star, X } from "lucide-react";
 import Image from "next/image";
 import { toast } from "sonner";
 import imageCompression from "browser-image-compression";
+import { useAuth } from "@/components/auth/AuthProvider";
 
 export default function ReviewsPage() {
   const params = useParams();
   const router = useRouter();
+  const { user } = useAuth();
   const storeId = params.storeId as string;
   const [userRating, setUserRating] = useState(5);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);

@@ -93,25 +93,44 @@ model GameBusiness {
   @@map("game_businesses")
 }
 
+model User {
+  id        String   @id @default(cuid())
+  tossId    String?  @unique // 토스 사용자 ID
+  nickname  String?  // 토스 닉네임
+  email     String?  // 토스 이메일
+  avatar    String?  // 토스 프로필 이미지
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // 기존 Review와 연결
+  reviews   Review[]
+
+  @@map("users")
+}
+
 model Review {
   id            String   @id @default(cuid())
-  storeId       Int      
+  storeId       Int
   store         GameBusiness @relation(fields: [storeId], references: [id])
-  
+
   rating        Int      // 1-5 별점
   content       String   // 리뷰 내용
   images        String[] // 이미지 URL들
   tags          String[] // 선택한 태그들
-  
-  // 작성자 정보 (임시로 익명 처리)
-  userName      String   @default("익명")
-  
+
+  // 작성자 정보 (토스 로그인 사용자 또는 익명)
+  userId        String?  // 토스 로그인 사용자일 경우
+  user          User?    @relation(fields: [userId], references: [id])
+  userName      String   @default("익명") // 기존 익명 리뷰 호환성 유지
+
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
-  
+
   // 성능 최적화를 위한 인덱스
   @@index([storeId, createdAt], name: "idx_reviews_store_created")
   @@index([storeId], name: "idx_reviews_store")
   @@index([rating], name: "idx_reviews_rating")
+  @@index([userId], name: "idx_reviews_user")
   @@map("reviews")
 }

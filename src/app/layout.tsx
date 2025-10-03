@@ -6,6 +6,7 @@ import "./globals.css";
 import Script from "next/script";
 import { Toaster } from "@/components/ui/sonner";
 import { TossWebViewProvider } from "@/components/TossWebViewProvider";
+import AuthProvider from "@/components/auth/AuthProvider";
 
 const pretendard = localFont({
   src: "../../public/fonts/PretendardVariable.woff2",
@@ -60,10 +61,12 @@ export default function RootLayout({
           }}
         />
         <TossWebViewProvider>
-          <div className={`mx-auto min-h-screen bg-white ${!isAdminPage ? "max-w-[600px] shadow-lg" : ""}`}>
-            {children}
-          </div>
-          <Toaster position="bottom-center" />
+          <AuthProvider>
+            <div className={`mx-auto min-h-screen bg-white ${!isAdminPage ? "max-w-[600px] shadow-lg" : ""}`}>
+              {children}
+            </div>
+            <Toaster position="bottom-center" />
+          </AuthProvider>
         </TossWebViewProvider>
       </body>
     </html>

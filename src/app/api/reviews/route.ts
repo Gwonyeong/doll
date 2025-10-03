@@ -1,11 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { PrismaClient } from '@/generated/prisma/client';
-
-const prisma = new PrismaClient();
+import { getSession } from '@/lib/toss-auth';
+import { prisma } from '@/lib/prisma';
 
 // 리뷰 생성
 export async function POST(request: NextRequest) {
   try {
+    // 인증 확인
+    const session = await getSession();
+    if (!session) {
+      return NextResponse.json(
+        { error: '로그인이 필요합니다.' },
+        { status: 401 }
+      );
+    }
+
     const body = await request.json();
     const { storeId, rating, content, tags, images } = body;
 
@@ -33,7 +41,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 리뷰 생성
+    // 리뷰 생성 (사용자 정보 포함)
     const review = await prisma.review.create({
       data: {
         storeId: parseInt(storeId),
@@ -41,6 +49,17 @@ export async function POST(request: NextRequest) {
         content,
         tags,
         images: images || [],
+        userId: session.user.id,
+        userName: session.user.nickname,
+      },
+      include: {
+        user: {
+          select: {
+            id: true,
+            nickname: true,
+            avatar: true,
+          },
+        },
       },
     });
 
@@ -70,6 +89,15 @@ export async function GET(request: NextRequest) {
     const reviews = await prisma.review.findMany({
       where: {
         storeId: parseInt(storeId),
+      },
+      include: {
+        user: {
+          select: {
+            id: true,
+            nickname: true,
+            avatar: true,
+          },
+        },
       },
       orderBy: {
         createdAt: 'desc',
