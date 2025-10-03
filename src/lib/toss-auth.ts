@@ -232,8 +232,6 @@ export async function fetchTossUserInfo(
               reject(new Error("토스 암호화 키가 설정되지 않았습니다"));
               return;
             }
-            console.log("jsonData", jsonData);
-            console.log("encryptionKey", encryptionKey);
 
             // AAD는 환경변수나 토스에서 별도로 제공받아야 합니다
             const aad = process.env.TOSS_AAD || undefined;
@@ -281,6 +279,12 @@ export async function upsertUser(userInfo: DecryptedUserInfo) {
       nickname: userInfo.nickname,
       email: userInfo.email,
       avatar: userInfo.avatar,
+      name: userInfo.name,
+      phone: userInfo.phone,
+      birthday: userInfo.birthday,
+      gender: userInfo.gender,
+      ci: userInfo.ci,
+      di: userInfo.di,
       updatedAt: new Date(),
     },
     create: {
@@ -288,6 +292,12 @@ export async function upsertUser(userInfo: DecryptedUserInfo) {
       nickname: userInfo.nickname,
       email: userInfo.email,
       avatar: userInfo.avatar,
+      name: userInfo.name,
+      phone: userInfo.phone,
+      birthday: userInfo.birthday,
+      gender: userInfo.gender,
+      ci: userInfo.ci,
+      di: userInfo.di,
     },
   });
 }

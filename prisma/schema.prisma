@@ -96,9 +96,17 @@ model GameBusiness {
 model User {
   id        String   @id @default(cuid())
   tossId    String?  @unique // 토스 사용자 ID
-  nickname  String?  // 토스 닉네임
+  nickname  String?  // 토스 닉네임 (name에서 추출)
   email     String?  // 토스 이메일
   avatar    String?  // 토스 프로필 이미지
+
+  // 토스에서 제공하는 추가 사용자 정보
+  name      String?  // 실명 (user_name)
+  phone     String?  // 전화번호 (user_phone)
+  birthday  String?  // 생년월일 (user_birthday)
+  gender    String?  // 성별 (user_gender)
+  ci        String?  // 연결정보 (user_ci) - 개인식별용 고유값
+  di        String?  // 중복가입확인정보 (선택사항)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -106,6 +114,8 @@ model User {
   // 기존 Review와 연결
   reviews   Review[]
 
+  // 성능 최적화를 위한 인덱스
+  @@index([ci], name: "idx_user_ci") // CI로 중복 가입 방지
   @@map("users")
 }
 

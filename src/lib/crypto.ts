@@ -5,6 +5,13 @@ export interface DecryptedUserInfo {
   nickname: string;
   email?: string;
   avatar?: string;
+  // 토스에서 제공하는 추가 정보
+  name?: string;      // 실명
+  phone?: string;     // 전화번호
+  birthday?: string;  // 생년월일
+  gender?: string;    // 성별
+  ci?: string;        // 연결정보
+  di?: string;        // 중복가입확인정보
 }
 
 /**
@@ -81,14 +88,25 @@ export function decryptTossUserInfo(
 ): DecryptedUserInfo {
   try {
     // 각 암호화된 필드를 개별적으로 복호화
-    const decryptedName = tossUserData.name ? decryptTossField(tossUserData.name, encryptionKey, aad) : '';
+    const decryptedName = tossUserData.name ? decryptTossField(tossUserData.name, encryptionKey, aad) : undefined;
     const decryptedEmail = tossUserData.email ? decryptTossField(tossUserData.email, encryptionKey, aad) : undefined;
+    const decryptedPhone = tossUserData.phone ? decryptTossField(tossUserData.phone, encryptionKey, aad) : undefined;
+    const decryptedBirthday = tossUserData.birthday ? decryptTossField(tossUserData.birthday, encryptionKey, aad) : undefined;
+    const decryptedGender = tossUserData.gender ? decryptTossField(tossUserData.gender, encryptionKey, aad) : undefined;
+    const decryptedCi = tossUserData.ci ? decryptTossField(tossUserData.ci, encryptionKey, aad) : undefined;
+    const decryptedDi = tossUserData.di ? decryptTossField(tossUserData.di, encryptionKey, aad) : undefined;
 
     return {
       id: tossUserData.userKey.toString(),
-      nickname: decryptedName,
+      nickname: decryptedName || `사용자${tossUserData.userKey}`, // 실명을 닉네임으로 사용, 없으면 기본값
       email: decryptedEmail,
-      avatar: undefined // 토스에서 아바타 정보를 제공하지 않음
+      avatar: undefined, // 토스에서 아바타 정보를 제공하지 않음
+      name: decryptedName,
+      phone: decryptedPhone,
+      birthday: decryptedBirthday,
+      gender: decryptedGender,
+      ci: decryptedCi,
+      di: decryptedDi
     };
   } catch (error) {
     console.error('토스 사용자 정보 복호화 실패:', error);
