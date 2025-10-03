@@ -1,6 +1,11 @@
-import { cookies } from 'next/headers';
-import { decryptTossUserInfo, isTokenExpired, type DecryptedUserInfo } from './crypto';
-import { prisma } from './prisma';
+import { cookies } from "next/headers";
+import https from "https";
+import {
+  decryptTossUserInfo,
+  isTokenExpired,
+  type DecryptedUserInfo,
+} from "./crypto";
+import { prisma } from "./prisma";
 
 export interface TossTokenResponse {
   access_token: string;
@@ -28,56 +33,96 @@ export interface AuthSession {
 /**
  * 토스 인가 코드를 사용하여 액세스 토큰을 발급받습니다.
  */
-export async function exchangeCodeForToken(code: string): Promise<TossTokenResponse> {
-  const clientId = process.env.NEXT_PUBLIC_TOSS_CLIENT_ID;
-  const clientSecret = process.env.TOSS_CLIENT_SECRET;
+export async function exchangeCodeForToken(
+  code: string,
+  referrer: string
+): Promise<TossTokenResponse> {
   const redirectUri = process.env.NEXT_PUBLIC_TOSS_REDIRECT_URI;
 
-  if (!clientId || !clientSecret || !redirectUri) {
-    throw new Error('토스 인증 환경변수가 설정되지 않았습니다');
+  if (!redirectUri) {
+    throw new Error("토스 인증 환경변수가 설정되지 않았습니다");
   }
 
-  const response = await fetch(process.env.TOSS_TOKEN_URL!, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/x-www-form-urlencoded',
-    },
-    body: new URLSearchParams({
-      grant_type: 'authorization_code',
-      client_id: clientId,
-      client_secret: clientSecret,
-      code,
-      redirect_uri: redirectUri,
-    }),
+  return new Promise((resolve, reject) => {
+    const url = new URL(process.env.TOSS_TOKEN_URL!);
+    const postData = JSON.stringify({
+      authorizationCode: code,
+      referrer: referrer,
+    });
+
+
+    const cert = process.env.TOSS_CERT;
+
+    const key = process.env.TOSS_KEY;
+
+    const options = {
+      hostname: url.hostname,
+      port: url.port || 443,
+      path: url.pathname,
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Content-Length": Buffer.byteLength(postData),
+      },
+      cert: cert,
+      key: key,
+      rejectUnauthorized: true,
+    };
+
+    const req = https.request(options, (res) => {
+      let data = "";
+
+
+      res.on("data", (chunk) => {
+        data += chunk;
+      });
+
+      res.on("end", () => {
+        if (res.statusCode === 200) {
+          try {
+            const jsonData = JSON.parse(data);
+            resolve(jsonData);
+          } catch (error) {
+            console.error("토스 토큰 파싱 실패:", error);
+            reject(new Error("토큰 파싱에 실패했습니다"));
+          }
+        } else {
+          console.error("토스 토큰 발급 실패:", data);
+          reject(new Error("토큰 발급에 실패했습니다"));
+        }
+      });
+    });
+
+    req.on("error", (error) => {
+      console.error("토스 토큰 발급 실패:", error);
+      reject(new Error("토큰 발급에 실패했습니다"));
+    });
+
+    req.write(postData);
+    req.end();
   });
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    console.error('토스 토큰 발급 실패:', errorText);
-    throw new Error('토큰 발급에 실패했습니다');
-  }
-
-  return response.json();
 }
 
 /**
  * 리프레시 토큰을 사용하여 새로운 액세스 토큰을 발급받습니다.
  */
-export async function refreshAccessToken(refreshToken: string): Promise<TossTokenResponse> {
+export async function refreshAccessToken(
+  refreshToken: string
+): Promise<TossTokenResponse> {
   const clientId = process.env.NEXT_PUBLIC_TOSS_CLIENT_ID;
   const clientSecret = process.env.TOSS_CLIENT_SECRET;
 
   if (!clientId || !clientSecret) {
-    throw new Error('토스 인증 환경변수가 설정되지 않았습니다');
+    throw new Error("토스 인증 환경변수가 설정되지 않았습니다");
   }
 
   const response = await fetch(process.env.TOSS_REFRESH_TOKEN_URL!, {
-    method: 'POST',
+    method: "POST",
     headers: {
-      'Content-Type': 'application/x-www-form-urlencoded',
+      "Content-Type": "application/x-www-form-urlencoded",
     },
     body: new URLSearchParams({
-      grant_type: 'refresh_token',
+      grant_type: "refresh_token",
       client_id: clientId,
       client_secret: clientSecret,
       refresh_token: refreshToken,
@@ -86,8 +131,8 @@ export async function refreshAccessToken(refreshToken: string): Promise<TossToke
 
   if (!response.ok) {
     const errorText = await response.text();
-    console.error('토스 토큰 갱신 실패:', errorText);
-    throw new Error('토큰 갱신에 실패했습니다');
+    console.error("토스 토큰 갱신 실패:", errorText);
+    throw new Error("토큰 갱신에 실패했습니다");
   }
 
   return response.json();
@@ -96,26 +141,28 @@ export async function refreshAccessToken(refreshToken: string): Promise<TossToke
 /**
  * 액세스 토큰을 사용하여 사용자 정보를 조회합니다.
  */
-export async function fetchTossUserInfo(accessToken: string): Promise<DecryptedUserInfo> {
+export async function fetchTossUserInfo(
+  accessToken: string
+): Promise<DecryptedUserInfo> {
   const response = await fetch(process.env.TOSS_USER_INFO_URL!, {
-    method: 'GET',
+    method: "GET",
     headers: {
-      'Authorization': `Bearer ${accessToken}`,
-      'Content-Type': 'application/json',
+      Authorization: `Bearer ${accessToken}`,
+      "Content-Type": "application/json",
     },
   });
 
   if (!response.ok) {
     const errorText = await response.text();
-    console.error('토스 사용자 정보 조회 실패:', errorText);
-    throw new Error('사용자 정보 조회에 실패했습니다');
+    console.error("토스 사용자 정보 조회 실패:", errorText);
+    throw new Error("사용자 정보 조회에 실패했습니다");
   }
 
   const data: TossUserInfoResponse = await response.json();
   const encryptionKey = process.env.TOSS_ENCRYPTION_KEY;
 
   if (!encryptionKey) {
-    throw new Error('토스 암호화 키가 설정되지 않았습니다');
+    throw new Error("토스 암호화 키가 설정되지 않았습니다");
   }
 
   return decryptTossUserInfo(data.encrypted_user_info, encryptionKey);
@@ -149,21 +196,21 @@ export async function setSessionCookies(tokens: TossTokenResponse) {
   const cookieStore = await cookies();
 
   // Access Token (1시간)
-  cookieStore.set('toss_access_token', tokens.access_token, {
+  cookieStore.set("toss_access_token", tokens.access_token, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax',
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
     maxAge: tokens.expires_in,
-    path: '/',
+    path: "/",
   });
 
   // Refresh Token (14일)
-  cookieStore.set('toss_refresh_token', tokens.refresh_token, {
+  cookieStore.set("toss_refresh_token", tokens.refresh_token, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax',
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
     maxAge: 14 * 24 * 60 * 60, // 14일
-    path: '/',
+    path: "/",
   });
 }
 
@@ -173,8 +220,8 @@ export async function setSessionCookies(tokens: TossTokenResponse) {
 export async function clearSessionCookies() {
   const cookieStore = await cookies();
 
-  cookieStore.delete('toss_access_token');
-  cookieStore.delete('toss_refresh_token');
+  cookieStore.delete("toss_access_token");
+  cookieStore.delete("toss_refresh_token");
 }
 
 /**
@@ -183,8 +230,8 @@ export async function clearSessionCookies() {
 export async function getSession(): Promise<AuthSession | null> {
   try {
     const cookieStore = await cookies();
-    const accessToken = cookieStore.get('toss_access_token')?.value;
-    const refreshToken = cookieStore.get('toss_refresh_token')?.value;
+    const accessToken = cookieStore.get("toss_access_token")?.value;
+    const refreshToken = cookieStore.get("toss_refresh_token")?.value;
 
     if (!accessToken) {
       return null;
@@ -215,7 +262,7 @@ export async function getSession(): Promise<AuthSession | null> {
           accessToken: newTokens.access_token,
         };
       } catch (error) {
-        console.error('토큰 갱신 실패:', error);
+        console.error("토큰 갱신 실패:", error);
         await clearSessionCookies();
         return null;
       }
@@ -236,7 +283,7 @@ export async function getSession(): Promise<AuthSession | null> {
       accessToken,
     };
   } catch (error) {
-    console.error('세션 조회 실패:', error);
+    console.error("세션 조회 실패:", error);
     await clearSessionCookies();
     return null;
   }
