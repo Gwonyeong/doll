@@ -53,12 +53,6 @@ export async function exchangeCodeForToken(
   code: string,
   referrer: string
 ): Promise<TossTokenResponse> {
-  const redirectUri = process.env.NEXT_PUBLIC_TOSS_REDIRECT_URI;
-
-  if (!redirectUri) {
-    throw new Error("토스 인증 환경변수가 설정되지 않았습니다");
-  }
-
   return new Promise((resolve, reject) => {
     const url = new URL(process.env.TOSS_TOKEN_URL!);
     const postData = JSON.stringify({
