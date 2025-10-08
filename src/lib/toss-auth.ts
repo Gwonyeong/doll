@@ -369,8 +369,8 @@ export async function getSession(): Promise<AuthSession | null> {
             id: user.id,
             tossId: user.tossId!,
             nickname: user.nickname!,
-            email: user.email,
-            avatar: user.avatar,
+            email: user.email || undefined,
+            avatar: user.avatar || undefined,
           },
           accessToken: newTokens.accessToken,
         };
@@ -390,8 +390,8 @@ export async function getSession(): Promise<AuthSession | null> {
         id: user.id,
         tossId: user.tossId!,
         nickname: user.nickname!,
-        email: user.email,
-        avatar: user.avatar,
+        email: user.email || undefined,
+        avatar: user.avatar || undefined,
       },
       accessToken,
     };

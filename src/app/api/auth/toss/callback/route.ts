@@ -29,10 +29,11 @@ export async function GET(request: NextRequest) {
     }
 
     // 인가 코드를 액세스 토큰으로 교환
-    const tokens = await exchangeCodeForToken(code);
+    // GET 요청의 경우 referrer를 빈 문자열로 전달
+    const tokens = await exchangeCodeForToken(code, "");
 
     // 사용자 정보 조회
-    const userInfo = await fetchTossUserInfo(tokens.access_token);
+    const userInfo = await fetchTossUserInfo(tokens.accessToken);
 
     // 사용자 정보를 데이터베이스에 저장/업데이트
     await upsertUser(userInfo);
