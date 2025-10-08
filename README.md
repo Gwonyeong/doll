@@ -131,3 +131,11 @@ primary: {
 ---
 
 **Made with ❤️ for DollCatcher**
+
+export ANDROID_HOME=~/Library/Android/sdk
+export PATH=$PATH:$ANDROID_HOME/tools:$ANDROID_HOME/tools/bin:$ANDROID_HOME/platform-tools
+
+adb reverse tcp:8081 tcp:8081
+adb reverse tcp:5173 tcp:5173
+
+# 특정 기기 연결: adb -s {디바이스아이디} reverse tcp:8081 tcp:8081
