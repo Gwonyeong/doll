@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
 import { LogOut, User, Settings } from 'lucide-react';
+import { apiClient } from '@/lib/api-client';
 
 interface UserProfileProps {
   user: {
@@ -20,9 +21,7 @@ export default function UserProfile({ user, onLogout }: UserProfileProps) {
 
   const handleLogout = async () => {
     try {
-      const response = await fetch('/api/auth/toss/logout', {
-        method: 'POST',
-      });
+      const response = await apiClient.post('/api/auth/toss/logout');
 
       if (response.ok) {
         onLogout();

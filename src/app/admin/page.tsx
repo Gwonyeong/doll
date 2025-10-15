@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import { apiClient } from "@/lib/api-client";
 
 interface GameBusiness {
   id: number;
@@ -106,7 +107,7 @@ export default function AdminPage() {
         maxGameMachines: filters.maxGameMachines.toString(),
       });
 
-      const response = await fetch(`/api/admin/game-businesses?${queryParams}`);
+      const response = await apiClient.get(`/api/admin/game-businesses?${queryParams}`);
       const data: ApiResponse = await response.json();
 
       if (data.success) {

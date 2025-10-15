@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
+import { apiClient } from "@/lib/api-client";
 
 interface User {
   id: string;
@@ -39,7 +40,7 @@ export default function AuthProvider({ children }: AuthProviderProps) {
 
   const fetchUser = async () => {
     try {
-      const response = await fetch("/api/auth/user");
+      const response = await apiClient.get("/api/auth/user");
 
       if (response.ok) {
         const data = await response.json();

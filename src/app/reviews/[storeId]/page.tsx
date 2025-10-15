@@ -7,6 +7,7 @@ import Image from "next/image";
 import { toast } from "sonner";
 import imageCompression from "browser-image-compression";
 import { useAuth } from "@/components/auth/AuthProvider";
+import { apiClient } from "@/lib/api-client";
 
 export default function ReviewsPage() {
   const params = useParams();
@@ -27,7 +28,7 @@ export default function ReviewsPage() {
   useEffect(() => {
     const fetchStoreInfo = async () => {
       try {
-        const response = await fetch(`/api/stores/${storeId}`);
+        const response = await apiClient.get(`/api/stores/${storeId}`);
         if (response.ok) {
           const data = await response.json();
           setStoreName(data.name);
@@ -384,19 +385,13 @@ export default function ReviewsPage() {
               ) {
                 setIsSubmitting(true);
                 try {
-                  const response = await fetch("/api/reviews", {
-                    method: "POST",
-                    headers: {
-                      "Content-Type": "application/json",
-                    },
-                    body: JSON.stringify({
+                  const response = await apiClient.post("/api/reviews", {
                       storeId,
                       rating: userRating,
                       content: reviewText,
                       tags: selectedTags,
                       images: uploadedImages,
-                    }),
-                  });
+                    });
 
                   const result = await response.json();
 

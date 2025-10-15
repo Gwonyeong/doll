@@ -4,6 +4,7 @@ import React, { useEffect, useState, useCallback, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { appLogin } from "@apps-in-toss/web-framework";
 import { useAuth } from "@/components/auth/AuthProvider";
+import { apiClient } from "@/lib/api-client";
 
 function LoginContent() {
   const searchParams = useSearchParams();
@@ -18,19 +19,13 @@ function LoginContent() {
 
       // 토스 앱인토스의 appLogin 함수 사용
       const { authorizationCode, referrer } = await appLogin();
-
+      console.log(authorizationCode, referrer);
       // 획득한 인가 코드와 referrer를 서버로 전달
-      const response = await fetch("/api/auth/toss/callback", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          code: authorizationCode,
-          referrer,
-        }),
+      const response = await apiClient.post("/api/auth/toss/callback", {
+        code: authorizationCode,
+        referrer,
       });
-
+      console.log(response);
       if (response.ok) {
         // 로그인 성공 시 사용자 정보 새로고침
         await refreshAuth();
@@ -39,12 +34,13 @@ function LoginContent() {
         window.location.href = returnUrl;
       } else {
         const errorData = await response.json();
-        throw new Error(errorData.message || "로그인 처리 실패");
+        console.log(errorData);
+        throw new Error(errorData || "로그인 처리 실패");
       }
     } catch (error) {
       console.error("토스 로그인 실패:", error);
       setErrorMessage(
-        "로그인 처리 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요."
+        "로그인 처리 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.22"
       );
       setIsLoading(false);
     }
@@ -70,7 +66,7 @@ function LoginContent() {
           break;
         case "callback_failed":
           setErrorMessage(
-            "로그인 처리 중 오류가 발생했습니다. 다시 시도해주세요."
+            "로그인 처리 중 오류가 발생했습니다. 다시 시도해주세요.22"
           );
           break;
         case "auth_check_failed":
@@ -154,11 +150,13 @@ function LoginContent() {
 
 export default function LoginPage() {
   return (
-    <Suspense fallback={
-      <div className="min-h-screen bg-white flex items-center justify-center p-4">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-      </div>
-    }>
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-white flex items-center justify-center p-4">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        </div>
+      }
+    >
       <LoginContent />
     </Suspense>
   );

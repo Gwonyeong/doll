@@ -8,6 +8,7 @@ import Image from "next/image";
 import StoreInfo from "@/components/StoreInfo";
 import { getTossBridge, isTossWebView, useSafeAreaInsets } from "@/lib/toss-bridge";
 import { useAuth } from "@/components/auth/AuthProvider";
+import { apiClient } from "@/lib/api-client";
 import UserProfile from "@/components/auth/UserProfile";
 
 // 네이버 지도 타입 정의
@@ -96,7 +97,7 @@ export default function MapPageClient() {
   const fetchReviews = useCallback(async (storeId: number) => {
     setReviewsLoading(true);
     try {
-      const response = await fetch(`/api/reviews?storeId=${storeId}`);
+      const response = await apiClient.get(`/api/reviews?storeId=${storeId}`);
       const result = await response.json();
 
       if (result.success) {

@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import Image from "next/image";
 import { X } from "lucide-react";
 import imageCompression from "browser-image-compression";
+import { apiClient } from "@/lib/api-client";
 
 interface GameBusiness {
   id: number;
@@ -82,7 +83,7 @@ export default function AdminStoreDetailPage() {
   useEffect(() => {
     const fetchStore = async () => {
       try {
-        const response = await fetch(`/api/stores/${storeId}`);
+        const response = await apiClient.get(`/api/stores/${storeId}`);
         if (response.ok) {
           const data = await response.json();
           setStore(data);
@@ -105,7 +106,7 @@ export default function AdminStoreDetailPage() {
   const fetchReviews = useCallback(async () => {
     setReviewsLoading(true);
     try {
-      const response = await fetch(`/api/reviews?storeId=${storeId}`);
+      const response = await apiClient.get(`/api/reviews?storeId=${storeId}`);
       if (response.ok) {
         const result = await response.json();
         setReviews(result.data.reviews);
@@ -185,19 +186,13 @@ export default function AdminStoreDetailPage() {
   // 후기 추가
   const handleAddReview = async () => {
     try {
-      const response = await fetch("/api/reviews", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
+      const response = await apiClient.post("/api/reviews", {
           storeId: parseInt(storeId),
           rating: newReview.rating,
           content: newReview.content,
           tags: newReview.tags,
           images: uploadedImages,
-        }),
-      });
+        });
 
       if (response.ok) {
         setShowAddModal(false);
@@ -220,17 +215,11 @@ export default function AdminStoreDetailPage() {
     if (!editingReview) return;
 
     try {
-      const response = await fetch(`/api/reviews/${editingReview.id}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
+      const response = await apiClient.put(`/api/reviews/${editingReview.id}`, {
           rating: editingReview.rating,
           content: editingReview.content,
           tags: editingReview.tags,
-        }),
-      });
+        });
 
       if (response.ok) {
         setEditingReview(null);
@@ -250,9 +239,7 @@ export default function AdminStoreDetailPage() {
     if (!confirm("정말로 이 후기를 삭제하시겠습니까?")) return;
 
     try {
-      const response = await fetch(`/api/reviews/${reviewId}`, {
-        method: "DELETE",
-      });
+      const response = await apiClient.delete(`/api/reviews/${reviewId}`);
 
       if (response.ok) {
         fetchReviews();

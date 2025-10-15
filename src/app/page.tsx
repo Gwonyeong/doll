@@ -1,5 +1,14 @@
-import { redirect } from "next/navigation";
+"use client";
+
+import { useRouter } from "next/navigation";
+import { useEffect } from "react";
 
 export default function Home() {
-  redirect("/map");
+  const router = useRouter();
+
+  useEffect(() => {
+    router.push("/map");
+  }, [router]);
+
+  return null;
 }

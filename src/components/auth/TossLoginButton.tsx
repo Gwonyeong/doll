@@ -3,6 +3,7 @@
 import React from 'react';
 import { appLogin } from '@apps-in-toss/web-framework';
 import { useAuth } from './AuthProvider';
+import { apiClient } from '@/lib/api-client';
 
 interface TossLoginButtonProps {
   className?: string;
@@ -17,15 +18,9 @@ export default function TossLoginButton({ className = '' }: TossLoginButtonProps
       const { authorizationCode, referrer } = await appLogin();
 
       // 획득한 인가 코드와 referrer를 서버로 전달
-      const response = await fetch('/api/auth/toss/callback', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          code: authorizationCode,
-          referrer,
-        }),
+      const response = await apiClient.post('/api/auth/toss/callback', {
+        code: authorizationCode,
+        referrer,
       });
 
       if (response.ok) {
